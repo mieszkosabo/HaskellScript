@@ -1,0 +1,12 @@
+const createPrinter = \text => {
+  const printer = \ => {
+    print(text);
+  };
+  return printer;
+};
+
+const p1 = createPrinter("hello");
+const p2 = createPrinter("world");
+
+p1(); // hello
+p2(); // world

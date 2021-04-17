@@ -3,7 +3,7 @@ module Interpreter where
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Except
-import Data.Map(empty, insert, toDescList, lookup)
+import Data.Map(empty, insert, toDescList, lookup, union)
 import Data.Maybe
 import AbsHaskellScript
 
@@ -20,6 +20,7 @@ newloc store =
 identToLoc :: Ident -> HSI Loc
 identToLoc (Ident name) = do
   env <- ask
+  -- liftIO $ print name
   let Just loc = Data.Map.lookup name env
   return loc
 
@@ -31,6 +32,14 @@ declareIdent (Ident name) value = do
   let env' = insert name loc env
   put (insert loc value store)
   return env'
+
+updateValue :: Ident -> Value -> HSI ()
+updateValue (Ident name) value = do
+  env <- ask
+  store <- get
+  let Just loc = Data.Map.lookup name env
+  put (insert loc value store)
+  return ()
 
 identToValue :: Ident -> HSI Value
 identToValue ident = do
@@ -58,9 +67,38 @@ evalRelOp GE = (<=)
 evalRelOp EQU = (==)
 evalRelOp NE = (/=)
 
+-- addArgToEnv :: Env -> (Ident, Value) -> HSI Env
+-- addArgTOEnv env (ident, value) = local (const env) 
+
+addArgsToEnv :: [Ident] -> [Value] -> HSI Env
+addArgsToEnv idents values = do
+  env <- ask
+  foldM f env (zip idents values)
+  where
+    f = \env (ident, value) -> local (const env) $ declareIdent ident value
+
 
 eval :: Expr -> HSI Value
--- TODO: EApp, LApp, Lambda, List
+-- TODO: List
+eval (ConciseLambda args e) = do
+  env <- ask
+  return $ FuncVal ([Ret e], args, env)
+
+eval (LongLambda args (Block stmts)) = do
+  env <- ask
+  return $ FuncVal (stmts, args, env)
+
+
+eval (EApp e args) = do
+  FuncVal (stmts, idents, env) <- eval e
+  env' <- ask
+  values <- mapM eval args
+  env <- local (const env) (addArgsToEnv idents values)
+  (_, ret) <- local (const $ union env env') $ execStmts stmts
+  case ret of
+    Nothing -> return VoidVal
+    Just val -> return val
+
 eval (EVar name) = identToValue name
 eval (EString s) = return $ StringVal s
 
@@ -125,7 +163,9 @@ execStmt (Decl name e) = do
   env' <- declareIdent name value
   return (env', Nothing)
 
-execStmt (SExp _) = continueExec
+execStmt (SExp e) = do
+  eval e -- potential side effects here, that's why needs to be evaluated
+  continueExec
 
 execStmt (Cond e (Block stmts)) = do
   BoolVal b <- eval e
@@ -146,6 +186,15 @@ execStmt (Ret e) = do
   env <- ask
   return (env, Just value)
 
+execStmt VoidRet = do
+  env <- ask
+  return (env, Just VoidVal)
+
+execStmt (Print expressions) = do
+  res <- mapM eval expressions
+  liftIO $ mapM_ (putStr . (++ " ") . show) res
+  liftIO $ putStrLn ""
+  continueExec
 
 execStmts :: [Stmt] -> HSI (Env, ReturnedValue)
 execStmts [] = continueExec

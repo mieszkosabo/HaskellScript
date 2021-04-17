@@ -1,0 +1,12 @@
+const c = 3;
+const fun = \a => (
+  \b => (
+    a + b + c
+  )
+);
+
+const f1 = fun(100);
+const f2 = fun(10);
+
+print(f1(1));
+print(f2(1));

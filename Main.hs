@@ -18,7 +18,9 @@ parse input =
       runtimeRes <- runHSI stmts
       case runtimeRes of
         Left _ -> do hPutStrLn stderr "Runtime Error"; exitFailure
-        Right s -> print s
+        Right s -> do
+          -- print s
+          return ()
     (Bad _) -> hPutStrLn stderr "Error while parsing" >> exitFailure
 
 parseFile :: String -> IO ()

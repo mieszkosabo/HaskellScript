@@ -5,10 +5,6 @@ entrypoints Program ;
 Program.   Program ::= [Stmt] ;
 
 separator Ident "," ;
--- Lambdas -----------------------------------------------------
-
-ConciseLambda. Lambda ::= "\\" [Ident] "=>" Expr8 ;
-LongLambda.    Lambda ::= "\\" [Ident] "=>" Block ;
 
 -- statements ----------------------------------------------
 
@@ -18,13 +14,17 @@ Block.     Block ::= "{" [Stmt] "}" ;
 
 Decl.      Stmt ::= "const" Ident "=" Expr ";" ;
 
-FunDecl.   Stmt ::= Ident "::"  [Type] "const" Ident "=" Lambda ";" ;
+FunDecl.   Stmt ::= Ident "::"  [Type] "const" Ident "=" Expr ";" ;
 
 Cond.      Stmt ::= "if" "(" Expr ")" Block ;
 
 CondElse.  Stmt ::= "if" "(" Expr ")" Block "else" Block ;
 
 Ret.       Stmt ::= "return" Expr ";" ;
+
+VoidRet.   Stmt ::= "return;" ;
+
+Print.     Stmt ::= "print" "(" [Expr] ")" ";" ;
 
 SExp.      Stmt ::= Expr ";" ;
 
@@ -46,25 +46,25 @@ separator Type "->" ;
 
 -- Expressions ---------------------------------------------
 
-EVar.      Expr6 ::= Ident ;
+EVar.      Expr8 ::= Ident ;
 
-ELitInt.   Expr6 ::= Integer ;
+ELitInt.   Expr8 ::= Integer ;
 
-EString.   Expr6 ::= String ;
+EString.   Expr8 ::= String ;
 
-ELitTrue.  Expr6 ::= "true" ;
+ELitTrue.  Expr8 ::= "true" ;
 
-ELitFalse. Expr6 ::= "false" ;
+ELitFalse. Expr8 ::= "false" ;
 
-Ternary.   Expr7 ::= Expr8 "?" Expr8 ":" Expr8 ;
+Ternary.   Expr ::= Expr1 "?" Expr1 ":" Expr1 ;
 
-LambdaExpr. Expr7 ::= Lambda ;
+LongLambda. Expr7 ::= "\\" [Ident] "=>" Block ;
 
-ListExpr.  Expr6 ::= "[" [Expr] "]" ;
+ConciseLambda. Expr7 ::= "\\" [Ident] "=>" Expr8 ;
 
-EApp.      Expr8 ::= Ident "(" [Expr] ")" ;
+-- ListExpr.  Expr6 ::= "[" [Expr] "]" ;
 
-LApp.      Expr6 ::= Expr7 "(" [Expr] ")" ;
+EApp.      Expr6 ::= Expr7 "(" [Expr] ")";
 
 Neg.       Expr5 ::= "-" Expr6 ;
 

@@ -1,4 +1,0 @@
-const a = 42;
-const b = 1;
-const c = a + b;
-return (c > 100) ? (1) : (-1);

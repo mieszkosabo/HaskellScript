@@ -1,0 +1,14 @@
+const createAdder = \n => {
+  const adder = \x => {
+    print("elo");
+    return (x + n);
+  };
+  return adder;
+};
+
+const p1 = createAdder(100);
+const p2 = createAdder(10);
+
+print("jestem tu");
+print(p1(1)); // 101
+print(p2(1)); // 11
