@@ -100,13 +100,15 @@ eval (EApp e args) = do
   env' <- ask
   values <- mapM eval args
   env <- local (const env) (addArgsToEnv idents values)
-  (_, ret) <- local (const $ union env env') $ execStmts stmts
-  case ret of
-    Nothing -> return VoidVal
-    Just val -> return val
-
--- eval (Spread e) = do
---   ListExpr expressions <- eval e
+  let isPartial = length args < length idents
+  (if isPartial then
+       return $ FuncVal (stmts, drop (length args) idents, env)
+   else
+       (do (_, ret) <- local (const $ union env env') $ execStmts stmts
+           case ret of
+             Nothing -> return VoidVal
+             Just val -> return val))
+    
 
 eval (ListExpr expressions) = do
   values <- foldM f [] (reverse expressions)
