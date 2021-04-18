@@ -1,0 +1,37 @@
+print :: a -> Void
+const print = \x => { _print(x); };
+
+member :: a -> [a] -> Bool
+const member = \a, l => {
+  match l:
+    case [] {
+      return false;
+    }
+    case x:xs {
+      return x == a ? true : isMember(a, xs);
+    }
+};
+
+foreach :: (a -> Void) -> [a] -> Void
+const foreach = \f, l => {
+  match l:
+    case [] {
+      return;
+    }
+    case x:xs {
+      f(x);
+      foreach(f, xs);
+    }
+};
+
+map :: (a -> b) -> [a] -> [b]
+const map = \f, l => {
+  match l:
+    case [] {
+      return [];
+    }
+    case x:xs {
+      return [f(x), ...(map(f, xs))];
+    }
+};
+

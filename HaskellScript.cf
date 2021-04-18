@@ -24,10 +24,18 @@ Ret.       Stmt ::= "return" Expr ";" ;
 
 VoidRet.   Stmt ::= "return;" ;
 
-Print.     Stmt ::= "print" "(" [Expr] ")" ";" ;
+Print.     Stmt ::= "_print" "(" [Expr] ")" ";" ;
+
+Match.     Stmt ::= "match" Ident ":" [Case] ;
 
 SExp.      Stmt ::= Expr ";" ;
 
+-- Cases
+
+EmptyList.    Case ::= "case" Expr Block ;
+HeadAndRest.  Case ::= "case" Ident ":" Ident Block ;
+
+separator Case "" ;
 -- Types ---------------------------------------------------
 
 Int.       Type ::= "Int" ;
@@ -41,6 +49,8 @@ Void.      Type ::= "Void" ;
 FunT.      Type ::= "(" [Type] ")" ;
 
 ListT.     Type ::= "[" Type "]" ;
+
+WildcardT. Type ::= Ident ;
 
 separator Type "->" ;
 
@@ -62,7 +72,10 @@ LongLambda. Expr7 ::= "\\" [Ident] "=>" Block ;
 
 ConciseLambda. Expr7 ::= "\\" [Ident] "=>" Expr8 ;
 
--- ListExpr.  Expr6 ::= "[" [Expr] "]" ;
+Spread.     Expr8 ::= "..." Expr7 ;
+
+ListExpr.  Expr7 ::= "[" [Expr] "]" ;
+EmptyListExpr. Expr7 ::= "[]" ;
 
 EApp.      Expr6 ::= Expr7 "(" [Expr] ")";
 

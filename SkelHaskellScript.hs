@@ -34,7 +34,13 @@ transStmt x = case x of
   AbsHaskellScript.Ret expr -> failure x
   AbsHaskellScript.VoidRet -> failure x
   AbsHaskellScript.Print exprs -> failure x
+  AbsHaskellScript.Match ident cases -> failure x
   AbsHaskellScript.SExp expr -> failure x
+
+transCase :: AbsHaskellScript.Case -> Result
+transCase x = case x of
+  AbsHaskellScript.EmptyList expr block -> failure x
+  AbsHaskellScript.HeadAndRest ident1 ident2 block -> failure x
 
 transType :: AbsHaskellScript.Type -> Result
 transType x = case x of
@@ -44,6 +50,7 @@ transType x = case x of
   AbsHaskellScript.Void -> failure x
   AbsHaskellScript.FunT types -> failure x
   AbsHaskellScript.ListT type_ -> failure x
+  AbsHaskellScript.WildcardT ident -> failure x
 
 transExpr :: AbsHaskellScript.Expr -> Result
 transExpr x = case x of
@@ -55,6 +62,9 @@ transExpr x = case x of
   AbsHaskellScript.Ternary expr1 expr2 expr3 -> failure x
   AbsHaskellScript.LongLambda idents block -> failure x
   AbsHaskellScript.ConciseLambda idents expr -> failure x
+  AbsHaskellScript.Spread expr -> failure x
+  AbsHaskellScript.ListExpr exprs -> failure x
+  AbsHaskellScript.EmptyListExpr -> failure x
   AbsHaskellScript.EApp expr exprs -> failure x
   AbsHaskellScript.Neg expr -> failure x
   AbsHaskellScript.Not expr -> failure x

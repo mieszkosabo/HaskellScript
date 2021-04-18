@@ -9,13 +9,22 @@ import ErrM
 import ParHaskellScript ( pProgram, myLexer )
 
 
+loadOverture :: IO ([Stmt] -> IO (Either RunTimeErrors ((Env, ReturnedValue), Store)))
+loadOverture = do
+  input <- readFile "lib/Overture.hss"
+  let (Ok (Program stmts)) = pProgram (myLexer input)
+  (Right ((env, _), store)) <- runHSI stmts
+  return (runPreloadedHSI env store)
+
+
 parse :: String -> IO ()
 parse input =
   case pProgram (myLexer input) of
     (Ok parsedProg) -> do
       let Program stmts = parsedProg
       -- todo typechecking
-      runtimeRes <- runHSI stmts
+      preloadedHSI <- loadOverture
+      runtimeRes <- preloadedHSI stmts
       case runtimeRes of
         Left _ -> do hPutStrLn stderr "Runtime Error"; exitFailure
         Right s -> do

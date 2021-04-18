@@ -1,3 +1,8 @@
-const b = 3;
-const fun = \a => (a + b);
-print(fun(1,));
+const fun = \ => {
+  print(1);
+  print(2);
+  return;
+  print(4);
+};
+
+fun();

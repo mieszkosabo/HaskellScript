@@ -25,10 +25,21 @@ data Stmt
     | Ret Expr
     | VoidRet
     | Print [Expr]
+    | Match Ident [Case]
     | SExp Expr
   deriving (C.Eq, C.Ord, C.Show, C.Read)
 
-data Type = Int | Str | Bool | Void | FunT [Type] | ListT Type
+data Case = EmptyList Expr Block | HeadAndRest Ident Ident Block
+  deriving (C.Eq, C.Ord, C.Show, C.Read)
+
+data Type
+    = Int
+    | Str
+    | Bool
+    | Void
+    | FunT [Type]
+    | ListT Type
+    | WildcardT Ident
   deriving (C.Eq, C.Ord, C.Show, C.Read)
 
 data Expr
@@ -40,6 +51,9 @@ data Expr
     | Ternary Expr Expr Expr
     | LongLambda [Ident] Block
     | ConciseLambda [Ident] Expr
+    | Spread Expr
+    | ListExpr [Expr]
+    | EmptyListExpr
     | EApp Expr [Expr]
     | Neg Expr
     | Not Expr

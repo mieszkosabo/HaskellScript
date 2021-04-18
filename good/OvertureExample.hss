@@ -1,0 +1,6 @@
+const adder = \x => (
+  x + 1
+);
+
+const l = [1, 2, 3];
+print(map(adder, l));

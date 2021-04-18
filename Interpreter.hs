@@ -5,6 +5,7 @@ import Control.Monad.State
 import Control.Monad.Except
 import Data.Map(empty, insert, toDescList, lookup, union)
 import Data.Maybe
+import Data.List(find)
 import AbsHaskellScript
 
 import Types
@@ -79,15 +80,14 @@ addArgsToEnv idents values = do
 
 
 eval :: Expr -> HSI Value
--- TODO: List
+
 eval (ConciseLambda args e) = do
   env <- ask
   return $ FuncVal ([Ret e], args, env)
 
 eval (LongLambda args (Block stmts)) = do
   env <- ask
-  return $ FuncVal (stmts, args, env)
-
+  return $ FuncVal (stmts, args, env) 
 
 eval (EApp e args) = do
   FuncVal (stmts, idents, env) <- eval e
@@ -98,6 +98,24 @@ eval (EApp e args) = do
   case ret of
     Nothing -> return VoidVal
     Just val -> return val
+
+-- eval (Spread e) = do
+--   ListExpr expressions <- eval e
+
+--foldM :: (Foldable t, Monad m) => (b -> a -> m b) -> b -> t a -> m b
+eval (ListExpr expressions) = do
+  values <- foldM f [] (reverse expressions)
+  return $ ListVal values
+  where
+    f vals (Spread e) = do
+      ListVal values <- eval e
+      return $ values ++ vals
+    f vals e = do
+      value <- eval e
+      return $ value:vals
+
+eval EmptyListExpr = do
+  return $ ListVal []
 
 eval (EVar name) = identToValue name
 eval (EString s) = return $ StringVal s
@@ -163,6 +181,13 @@ execStmt (Decl name e) = do
   env' <- declareIdent name value
   return (env', Nothing)
 
+execStmt (FunDecl _ _ name e) = do
+  -- todo check idents if equal
+  -- todo typechecking
+  value <- eval e
+  env' <- declareIdent name value
+  return (env', Nothing)
+
 execStmt (SExp e) = do
   eval e -- potential side effects here, that's why needs to be evaluated
   continueExec
@@ -196,6 +221,32 @@ execStmt (Print expressions) = do
   liftIO $ putStrLn ""
   continueExec
 
+execStmt (Match ident cases) = do
+  value <- identToValue ident
+  let maybeMatchingCase = find (doesCaseMatch value) cases
+  case maybeMatchingCase of
+    Nothing -> continueExec
+    Just matchingCase -> runCase matchingCase value
+
+
+runCase :: Case -> Value -> HSI (Env, ReturnedValue) 
+runCase (EmptyList EmptyListExpr (Block stmts)) _ = do
+  execStmts stmts
+runCase (HeadAndRest x xs (Block stmts)) (ListVal (x':xs')) = do
+  env <- ask
+  env' <- local (const env) $ declareIdent x x'
+  env' <- local (const env') $ declareIdent xs (ListVal xs')
+  (_, ret) <- local (const env') $ execStmts stmts
+  return (env, ret)
+
+
+doesCaseMatch :: Value -> Case -> Bool
+doesCaseMatch  (ListVal []) (EmptyList EmptyListExpr _) = True
+doesCaseMatch  (ListVal (_:_)) (HeadAndRest _ _ _) = True
+doesCaseMatch _ _ = False
+
+
+
 execStmts :: [Stmt] -> HSI (Env, ReturnedValue)
 execStmts [] = continueExec
 execStmts (s:rest) = do
@@ -207,3 +258,5 @@ execStmts (s:rest) = do
 
 
 runHSI stmts = runExceptT $ runStateT (runReaderT (execStmts stmts) empty) empty
+
+runPreloadedHSI env store stmts =runExceptT $ runStateT (runReaderT (execStmts stmts) env) store
