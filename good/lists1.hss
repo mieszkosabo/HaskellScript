@@ -8,9 +8,9 @@ match list:
   case [] {
     print("empty!");
   }
-  case x:xs {
-    print("head: ", x);
-    print("tail: ", xs);
+  case [x, ...xs] {
+    _print("head: ", x); // 1
+    _print("tail: ", xs); // [2, 3]
   }
 
 const isMember = \a, l => {
@@ -18,7 +18,7 @@ const isMember = \a, l => {
     case [] {
       return false;
     }
-    case x:xs {
+    case [x, ...xs] {
       return x == a ? true : isMember(a, xs);
     }
 };

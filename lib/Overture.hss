@@ -8,7 +8,7 @@ const member = \a, l => {
       return false;
     }
     case [x, ...xs] {
-      return x == a ? true : isMember(a, xs);
+      return x == a ? true : member(a, xs);
     }
 };
 

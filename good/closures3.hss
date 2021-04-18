@@ -8,5 +8,5 @@ const fun = \a => (
 const f1 = fun(100);
 const f2 = fun(10);
 
-print(f1(1));
-print(f2(1));
+print(f1(1)); // 104
+print(f2(1)); // 14

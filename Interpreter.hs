@@ -137,9 +137,9 @@ eval (EMul e op e') = do
   IntVal n <- eval e
   IntVal n' <- eval e'
   case op of
-    Div -> if n' == 0 then throwError DivisionByZeroException else return $ evalMulOp op n n'
-    Mod -> if n' == 0 then throwError ModByZeroException else return $ evalMulOp op n n'
-  return $ IntVal $ evalMulOp op n n'
+    Div -> if n' == 0 then throwError DivisionByZeroException else return $ IntVal $ evalMulOp op n n'
+    Mod -> if n' == 0 then throwError ModByZeroException else return $ IntVal $ evalMulOp op n n'
+    _ -> return $ IntVal $ evalMulOp op n n'
 
 eval ELitTrue = return $ BoolVal True
 
