@@ -29,7 +29,7 @@ data Stmt
     | SExp Expr
   deriving (C.Eq, C.Ord, C.Show, C.Read)
 
-data Case = EmptyList Expr Block | HeadAndRest Ident Ident Block
+data Case = Case Expr Block
   deriving (C.Eq, C.Ord, C.Show, C.Read)
 
 data Type
@@ -53,7 +53,6 @@ data Expr
     | ConciseLambda [Ident] Expr
     | Spread Expr
     | ListExpr [Expr]
-    | EmptyListExpr
     | EApp Expr [Expr]
     | Neg Expr
     | Not Expr

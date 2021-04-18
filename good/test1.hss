@@ -1,8 +1,10 @@
-const fun = \ => {
-  print(1);
-  print(2);
-  return;
-  print(4);
-};
+const em = [1, 2, 3];
 
-fun();
+match em:
+  case [] {
+    _print("lets go");
+  }
+  case [x, ...xs] {
+    _print(x);
+    _print(xs);
+  }

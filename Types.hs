@@ -39,6 +39,8 @@ type Env = Map VarName Loc
 type Store = Map Loc Value
 
 data RunTimeErrors = DivisionByZeroException
+                   | ModByZeroException
+                   
   deriving Show
 
 -- HaskellScript Interpreter

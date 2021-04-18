@@ -32,8 +32,7 @@ SExp.      Stmt ::= Expr ";" ;
 
 -- Cases
 
-EmptyList.    Case ::= "case" Expr Block ;
-HeadAndRest.  Case ::= "case" Ident ":" Ident Block ;
+Case.    Case ::= "case" Expr Block ;
 
 separator Case "" ;
 -- Types ---------------------------------------------------
@@ -75,7 +74,7 @@ ConciseLambda. Expr7 ::= "\\" [Ident] "=>" Expr8 ;
 Spread.     Expr8 ::= "..." Expr7 ;
 
 ListExpr.  Expr7 ::= "[" [Expr] "]" ;
-EmptyListExpr. Expr7 ::= "[]" ;
+-- EmptyListExpr. Expr7 ::= "[]" ;
 
 EApp.      Expr6 ::= Expr7 "(" [Expr] ")";
 

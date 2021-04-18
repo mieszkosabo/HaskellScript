@@ -7,9 +7,24 @@ const member = \a, l => {
     case [] {
       return false;
     }
-    case x:xs {
+    case [x, ...xs] {
       return x == a ? true : isMember(a, xs);
     }
+};
+
+empty :: [a] -> Bool
+const empty = \l => (
+  l == []
+);
+
+range :: Int -> [Int]
+const range = \n => {
+  if (n < 0) {
+    return [];
+  }
+  else {
+    return [...(range(n - 1)), n];
+  }
 };
 
 foreach :: (a -> Void) -> [a] -> Void
@@ -18,7 +33,7 @@ const foreach = \f, l => {
     case [] {
       return;
     }
-    case x:xs {
+    case [x, ...xs] {
       f(x);
       foreach(f, xs);
     }
@@ -30,8 +45,34 @@ const map = \f, l => {
     case [] {
       return [];
     }
-    case x:xs {
+    case [x, ...xs] {
       return [f(x), ...(map(f, xs))];
     }
 };
 
+reduce :: (a -> b -> b) -> b -> [a] -> b
+const reduce = \f, initVal, l => {
+  match l:
+    case [] {
+      return initVal;
+    }
+    case [x, ...xs] {
+      return f(x, (reduce(f, initVal, xs)));
+    }
+};
+
+head :: [a] -> a
+const head = \l => {
+  match l:
+    case [x, ...xs] {
+      return x;
+    }
+};
+
+tail :: [a] -> [a]
+const tail = \l => {
+  match l:
+    case [x, ...xs] {
+      return xs;
+    }
+};

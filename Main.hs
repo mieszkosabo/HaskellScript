@@ -26,7 +26,7 @@ parse input =
       preloadedHSI <- loadOverture
       runtimeRes <- preloadedHSI stmts
       case runtimeRes of
-        Left _ -> do hPutStrLn stderr "Runtime Error"; exitFailure
+        Left err -> do hPutStrLn stderr ("Runtime Error: " ++ show err); exitFailure
         Right s -> do
           -- print s
           return ()

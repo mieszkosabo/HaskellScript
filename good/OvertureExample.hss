@@ -1,6 +1,13 @@
-const adder = \x => (
+const inc = \x => (
   x + 1
 );
 
-const l = [1, 2, 3];
-print(map(adder, l));
+print(map(inc, range(10)));
+
+print(empty([1, 2, 3]));
+
+const sum = \numbers => (
+  reduce((\val, acc => (val + acc)), 0, numbers)
+);
+
+print(sum(range(10))); // 55

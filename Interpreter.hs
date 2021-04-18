@@ -21,7 +21,7 @@ newloc store =
 identToLoc :: Ident -> HSI Loc
 identToLoc (Ident name) = do
   env <- ask
-  -- liftIO $ print name
+  --liftIO $ print name
   let Just loc = Data.Map.lookup name env
   return loc
 
@@ -68,8 +68,14 @@ evalRelOp GE = (<=)
 evalRelOp EQU = (==)
 evalRelOp NE = (/=)
 
--- addArgToEnv :: Env -> (Ident, Value) -> HSI Env
--- addArgTOEnv env (ident, value) = local (const env) 
+checkEq :: Value -> Value -> Bool
+checkEq (IntVal n) (IntVal n') = evalRelOp EQU n n'
+checkEq (StringVal s) (StringVal s') = s == s'
+checkEq (BoolVal b) (BoolVal b') = b == b'
+checkEq (ListVal vs) (ListVal vs') = 
+  (length vs == length vs')
+    && foldr (\ (v, v') res -> checkEq v v' && res) True (zip vs vs')
+checkEq _ _ = False
 
 addArgsToEnv :: [Ident] -> [Value] -> HSI Env
 addArgsToEnv idents values = do
@@ -102,7 +108,6 @@ eval (EApp e args) = do
 -- eval (Spread e) = do
 --   ListExpr expressions <- eval e
 
---foldM :: (Foldable t, Monad m) => (b -> a -> m b) -> b -> t a -> m b
 eval (ListExpr expressions) = do
   values <- foldM f [] (reverse expressions)
   return $ ListVal values
@@ -113,9 +118,6 @@ eval (ListExpr expressions) = do
     f vals e = do
       value <- eval e
       return $ value:vals
-
-eval EmptyListExpr = do
-  return $ ListVal []
 
 eval (EVar name) = identToValue name
 eval (EString s) = return $ StringVal s
@@ -134,6 +136,9 @@ eval (EAdd e op e') = do
 eval (EMul e op e') = do
   IntVal n <- eval e
   IntVal n' <- eval e'
+  case op of
+    Div -> if n' == 0 then throwError DivisionByZeroException else return $ evalMulOp op n n'
+    Mod -> if n' == 0 then throwError ModByZeroException else return $ evalMulOp op n n'
   return $ IntVal $ evalMulOp op n n'
 
 eval ELitTrue = return $ BoolVal True
@@ -154,10 +159,16 @@ eval (EOr e e') = do
   BoolVal b' <- eval e'
   return $ BoolVal $ b || b'
 
-eval (ERel e op e') = do
-  IntVal n <- eval e
-  IntVal n' <- eval e'
-  return $ BoolVal $ evalRelOp op n n'
+eval (ERel e op e') =
+  case op of
+    EQU -> do 
+      v <- eval e
+      v' <- eval e'
+      return $ BoolVal $ checkEq v v'
+    _ -> do
+    IntVal n <- eval e
+    IntVal n' <- eval e'
+    return $ BoolVal $ evalRelOp op n n'
 
 eval (Ternary e e' e'') = do
   BoolVal b <- eval e
@@ -230,9 +241,9 @@ execStmt (Match ident cases) = do
 
 
 runCase :: Case -> Value -> HSI (Env, ReturnedValue) 
-runCase (EmptyList EmptyListExpr (Block stmts)) _ = do
+runCase (Case (ListExpr []) (Block stmts)) _ = do
   execStmts stmts
-runCase (HeadAndRest x xs (Block stmts)) (ListVal (x':xs')) = do
+runCase (Case (ListExpr [EVar x, Spread (EVar xs)]) (Block stmts)) (ListVal (x':xs')) = do
   env <- ask
   env' <- local (const env) $ declareIdent x x'
   env' <- local (const env') $ declareIdent xs (ListVal xs')
@@ -241,8 +252,8 @@ runCase (HeadAndRest x xs (Block stmts)) (ListVal (x':xs')) = do
 
 
 doesCaseMatch :: Value -> Case -> Bool
-doesCaseMatch  (ListVal []) (EmptyList EmptyListExpr _) = True
-doesCaseMatch  (ListVal (_:_)) (HeadAndRest _ _ _) = True
+doesCaseMatch  (ListVal []) (Case (ListExpr []) _) = True
+doesCaseMatch  (ListVal (_:_)) (Case (ListExpr [EVar _, Spread _]) _) = True
 doesCaseMatch _ _ = False
 
 

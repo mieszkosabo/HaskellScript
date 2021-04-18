@@ -143,8 +143,7 @@ instance Print AbsHaskellScript.Stmt where
 
 instance Print AbsHaskellScript.Case where
   prt i = \case
-    AbsHaskellScript.EmptyList expr block -> prPrec i 0 (concatD [doc (showString "case"), prt 0 expr, prt 0 block])
-    AbsHaskellScript.HeadAndRest id_1 id_2 block -> prPrec i 0 (concatD [doc (showString "case"), prt 0 id_1, doc (showString ":"), prt 0 id_2, prt 0 block])
+    AbsHaskellScript.Case expr block -> prPrec i 0 (concatD [doc (showString "case"), prt 0 expr, prt 0 block])
   prtList _ [] = concatD []
   prtList _ (x:xs) = concatD [prt 0 x, prt 0 xs]
 
@@ -179,7 +178,6 @@ instance Print AbsHaskellScript.Expr where
     AbsHaskellScript.ConciseLambda ids expr -> prPrec i 7 (concatD [doc (showString "\\"), prt 0 ids, doc (showString "=>"), prt 8 expr])
     AbsHaskellScript.Spread expr -> prPrec i 8 (concatD [doc (showString "..."), prt 7 expr])
     AbsHaskellScript.ListExpr exprs -> prPrec i 7 (concatD [doc (showString "["), prt 0 exprs, doc (showString "]")])
-    AbsHaskellScript.EmptyListExpr -> prPrec i 7 (concatD [doc (showString "[]")])
     AbsHaskellScript.EApp expr exprs -> prPrec i 6 (concatD [prt 7 expr, doc (showString "("), prt 0 exprs, doc (showString ")")])
     AbsHaskellScript.Neg expr -> prPrec i 5 (concatD [doc (showString "-"), prt 6 expr])
     AbsHaskellScript.Not expr -> prPrec i 5 (concatD [doc (showString "not"), prt 6 expr])
