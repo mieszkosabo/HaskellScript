@@ -23,8 +23,10 @@ parse input =
     (Ok parsedProg) -> do
       let Program stmts = parsedProg
       -- todo typechecking
+      
       preloadedHSI <- loadOverture
       runtimeRes <- preloadedHSI stmts
+      --runtimeRes <- runHSI stmts
       case runtimeRes of
         Left err -> do hPutStrLn stderr ("Runtime Error: " ++ show err); exitFailure
         Right s -> do

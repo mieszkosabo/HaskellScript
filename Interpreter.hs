@@ -18,15 +18,15 @@ newloc store =
     [] -> 0
     ((k,_):_) -> k + 1
 
-identToLoc :: Ident -> HSI Loc
-identToLoc (Ident name) = do
+varToLoc :: String -> HSI Loc
+varToLoc name = do
   env <- ask
   --liftIO $ print name
   let Just loc = Data.Map.lookup name env
   return loc
 
-declareIdent :: Ident -> Value -> HSI Env
-declareIdent (Ident name) value = do
+declareVar :: String -> Value -> HSI Env
+declareVar name value = do
   env <- ask
   store <- get
   let loc = newloc store
@@ -42,9 +42,9 @@ updateValue (Ident name) value = do
   put (insert loc value store)
   return ()
 
-identToValue :: Ident -> HSI Value
-identToValue ident = do
-  loc <- identToLoc ident
+varToValue :: String -> HSI Value
+varToValue name = do
+  loc <- varToLoc name
   store <- get
   let Just value = Data.Map.lookup loc store
   return value
@@ -77,13 +77,12 @@ checkEq (ListVal vs) (ListVal vs') =
     && foldr (\ (v, v') res -> checkEq v v' && res) True (zip vs vs')
 checkEq _ _ = False
 
-addArgsToEnv :: [Ident] -> [Value] -> HSI Env
-addArgsToEnv idents values = do
+addArgsToEnv :: [String] -> [Value] -> HSI Env
+addArgsToEnv names values = do
   env <- ask
-  foldM f env (zip idents values)
+  foldM f env (zip names values)
   where
-    f = \env (ident, value) -> local (const env) $ declareIdent ident value
-
+    f = \env (ident, value) -> local (const env) $ declareVar ident value
 
 eval :: Expr -> HSI Value
 
@@ -95,20 +94,29 @@ eval (LongLambda args (Block stmts)) = do
   env <- ask
   return $ FuncVal (stmts, args, env) 
 
+eval (EConstr (Udent s)) = varToValue s
+
 eval (EApp e args) = do
-  FuncVal (stmts, idents, env) <- eval e
-  env' <- ask
-  values <- mapM eval args
-  env <- local (const env) (addArgsToEnv idents values)
-  let isPartial = length args < length idents
-  (if isPartial then
-       return $ FuncVal (stmts, drop (length args) idents, env)
-   else
-       (do (_, ret) <- local (const $ union env env') $ execStmts stmts
-           case ret of
-             Nothing -> return VoidVal
-             Just val -> return val))
+  callabeValue <- eval e
+  case callabeValue of
+    FuncVal (stmts, idents, env) -> do
+      env' <- ask
+      values <- mapM eval args
+      let names = map (\(Ident name) -> name) idents
+      env <- local (const env) (addArgsToEnv names values)
+      let isPartial = length args < length idents
+      (if isPartial then
+          return $ FuncVal (stmts, drop (length args) idents, env)
+      else
+          (do (_, ret) <- local (const $ union env env') $ execStmts stmts
+              case ret of
+                Nothing -> return VoidVal
+                Just val -> return val))
     
+    (ConstrVal udent types) -> do
+      values <- mapM eval args
+      -- TODO: errors
+      return $ DataVal (udent, values)
 
 eval (ListExpr expressions) = do
   values <- foldM f [] (reverse expressions)
@@ -121,7 +129,7 @@ eval (ListExpr expressions) = do
       value <- eval e
       return $ value:vals
 
-eval (EVar name) = identToValue name
+eval (EVar (Ident name)) = varToValue name
 eval (EString s) = return $ StringVal s
 
 eval (ELitInt n) = return $ IntVal n
@@ -189,16 +197,24 @@ continueExec = do
 
 execStmt :: Stmt -> HSI (Env, ReturnedValue)
 
-execStmt (Decl name e) = do
+execStmt (Decl (Ident name) e) = do
   value <- eval e
-  env' <- declareIdent name value
+  env' <- declareVar name value
   return (env', Nothing)
 
-execStmt (FunDecl _ _ name e) = do
+execStmt (FunDecl _ _ (Ident name) e) = do
   -- todo check idents if equal
   -- todo typechecking
   value <- eval e
-  env' <- declareIdent name value
+  env' <- declareVar name value
+  return (env', Nothing)
+
+execStmt (DataDecl udent params constructors) = do
+  let constrValues = map (\(Constructor udent types) -> ConstrVal udent types) constructors
+  let udents = map (\(Constructor udent types) -> udent) constructors
+  env <- ask
+  let names = map (\(Udent name) -> name) udents
+  env' <- local (const env) (addArgsToEnv names constrValues)
   return (env', Nothing)
 
 execStmt (SExp e) = do
@@ -234,8 +250,8 @@ execStmt (Print expressions) = do
   liftIO $ putStrLn ""
   continueExec
 
-execStmt (Match ident cases) = do
-  value <- identToValue ident
+execStmt (Match (Ident name) cases) = do
+  value <- varToValue name
   let maybeMatchingCase = find (doesCaseMatch value) cases
   case maybeMatchingCase of
     Nothing -> continueExec
@@ -245,17 +261,26 @@ execStmt (Match ident cases) = do
 runCase :: Case -> Value -> HSI (Env, ReturnedValue) 
 runCase (Case (ListExpr []) (Block stmts)) _ = do
   execStmts stmts
-runCase (Case (ListExpr [EVar x, Spread (EVar xs)]) (Block stmts)) (ListVal (x':xs')) = do
+runCase (Case (ListExpr [EVar (Ident x), Spread (EVar (Ident xs))]) (Block stmts)) (ListVal (x':xs')) = do
   env <- ask
-  env' <- local (const env) $ declareIdent x x'
-  env' <- local (const env') $ declareIdent xs (ListVal xs')
+  env' <- local (const env) $ declareVar x x'
+  env' <- local (const env') $ declareVar xs (ListVal xs')
   (_, ret) <- local (const env') $ execStmts stmts
   return (env, ret)
 
+runCase (Case (EApp _ exprs) (Block stmts)) (DataVal (_, vals)) = do
+  env <- ask
+  let names = map (\(EVar (Ident name)) -> name) exprs
+  env' <- local (const env) $ addArgsToEnv names vals
+  (_, ret) <- local (const env') $ execStmts stmts
+  return (env, ret)
 
 doesCaseMatch :: Value -> Case -> Bool
 doesCaseMatch  (ListVal []) (Case (ListExpr []) _) = True
 doesCaseMatch  (ListVal (_:_)) (Case (ListExpr [EVar _, Spread _]) _) = True
+
+doesCaseMatch (DataVal (udent, vals)) (Case (EApp (EConstr udent') exprs) _) =
+  udent == udent' && length vals == length exprs
 doesCaseMatch _ _ = False
 
 

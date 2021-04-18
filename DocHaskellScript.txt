@@ -27,24 +27,28 @@ except ``"`` unless preceded by ``\``.
 
 
 
+Udent literals are recognized by the regular expression
+`````upper ('_' | digit | letter)*`````
+
+
 ===Reserved words and symbols===
 The set of reserved words is the set of terminals appearing in the grammar. Those reserved words that consist of non-letter characters are called symbols, and they are treated in a different way from those that are similar to identifiers. The lexer follows rules familiar from languages like Haskell, C, and Java, including longest match and spacing conventions.
 
 The reserved words used in HaskellScript are the following:
   | ``Bool`` | ``Int`` | ``String`` | ``Void``
-  | ``and`` | ``case`` | ``const`` | ``else``
-  | ``false`` | ``if`` | ``match`` | ``not``
-  | ``or`` | ``return`` | ``true`` |
+  | ``and`` | ``case`` | ``const`` | ``data``
+  | ``else`` | ``false`` | ``if`` | ``match``
+  | ``not`` | ``or`` | ``return`` | ``true``
 
 The symbols used in HaskellScript are the following:
   | , | { | } | =
   | ; | :: | ( | )
   | return; | _print | : | [
-  | ] | -> | ? | \
-  | => | ... | - | +
-  | * | / | % | <
-  | <= | > | >= | ==
-  | != |  |  |
+  | ] | -> | | | ?
+  | \ | => | ... | -
+  | + | * | / | %
+  | < | <= | > | >=
+  | == | != |  |
 
 ===Comments===
 Single-line comments begin with //.Multiple-line comments are  enclosed with /* and */.
@@ -64,6 +68,7 @@ All other symbols are terminals.
   | //Block// | -> | ``{`` //[Stmt]// ``}``
   | //Stmt// | -> | ``const`` //Ident// ``=`` //Expr// ``;``
   |  |  **|**  | //Ident// ``::`` //[Type]// ``const`` //Ident// ``=`` //Expr// ``;``
+  |  |  **|**  | ``data`` //Udent// ``(`` //[Type]// ``)`` ``=`` ``{`` //[Constructor]// ``}`` ``;``
   |  |  **|**  | ``if`` ``(`` //Expr// ``)`` //Block//
   |  |  **|**  | ``if`` ``(`` //Expr// ``)`` //Block// ``else`` //Block//
   |  |  **|**  | ``return`` //Expr// ``;``
@@ -81,17 +86,26 @@ All other symbols are terminals.
   |  |  **|**  | ``(`` //[Type]// ``)``
   |  |  **|**  | ``[`` //Type// ``]``
   |  |  **|**  | //Ident//
+  |  |  **|**  | //Udent// ``(`` //[Type]// ``)``
   | //[Type]// | -> | **eps**
   |  |  **|**  | //Type//
   |  |  **|**  | //Type// ``->`` //[Type]//
+  | //TypeArg// | -> | //Type//
+  | //[TypeArg]// | -> | **eps**
+  |  |  **|**  | //TypeArg//
+  |  |  **|**  | //TypeArg// ``,`` //[TypeArg]//
+  | //Constructor// | -> | //Udent// ``(`` //[TypeArg]// ``)``
+  | //[Constructor]// | -> | //Constructor//
+  |  |  **|**  | //Constructor// ``|`` //[Constructor]//
   | //Expr8// | -> | //Ident//
+  |  |  **|**  | //Udent//
   |  |  **|**  | //Integer//
   |  |  **|**  | //String//
   |  |  **|**  | ``true``
   |  |  **|**  | ``false``
-  |  |  **|**  | ``...`` //Expr7//
   |  |  **|**  | ``(`` //Expr// ``)``
   | //Expr// | -> | //Expr1// ``?`` //Expr1// ``:`` //Expr1//
+  |  |  **|**  | ``...`` //Expr1//
   |  |  **|**  | //Expr1// ``or`` //Expr//
   |  |  **|**  | //Expr1//
   | //Expr7// | -> | ``\`` //[Ident]// ``=>`` //Block//

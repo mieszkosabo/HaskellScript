@@ -4,6 +4,8 @@ entrypoints Program ;
 
 Program.   Program ::= [Stmt] ;
 
+token Udent (upper (letter | digit | '_')*) ;
+
 separator Ident "," ;
 
 -- statements ----------------------------------------------
@@ -15,6 +17,8 @@ Block.     Block ::= "{" [Stmt] "}" ;
 Decl.      Stmt ::= "const" Ident "=" Expr ";" ;
 
 FunDecl.   Stmt ::= Ident "::"  [Type] "const" Ident "=" Expr ";" ;
+
+DataDecl.  Stmt ::= "data" Udent "(" [Type] ")" "=" "{" [Constructor]  "}" ";" ;
 
 Cond.      Stmt ::= "if" "(" Expr ")" Block ;
 
@@ -51,11 +55,23 @@ ListT.     Type ::= "[" Type "]" ;
 
 WildcardT. Type ::= Ident ;
 
+DataType.  Type ::= Udent "(" [Type] ")";
+
 separator Type "->" ;
+
+-- constructor
+
+TypeArg.    TypeArg ::= Type ;
+separator TypeArg "," ;
+
+Constructor.  Constructor ::= Udent "(" [TypeArg] ")";
+separator nonempty Constructor "|" ;
 
 -- Expressions ---------------------------------------------
 
 EVar.      Expr8 ::= Ident ;
+
+EConstr.   Expr8 ::= Udent ;
 
 ELitInt.   Expr8 ::= Integer ;
 
@@ -71,10 +87,11 @@ LongLambda. Expr7 ::= "\\" [Ident] "=>" Block ;
 
 ConciseLambda. Expr7 ::= "\\" [Ident] "=>" Expr8 ;
 
-Spread.     Expr8 ::= "..." Expr7 ;
+Spread.     Expr ::= "..." Expr1 ;
 
 ListExpr.  Expr7 ::= "[" [Expr] "]" ;
--- EmptyListExpr. Expr7 ::= "[]" ;
+
+-- DataExpr. Expr6 ::= Udent [Type] ;  
 
 EApp.      Expr6 ::= Expr7 "(" [Expr] ")";
 

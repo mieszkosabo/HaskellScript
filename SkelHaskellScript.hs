@@ -17,6 +17,10 @@ transIdent :: AbsHaskellScript.Ident -> Result
 transIdent x = case x of
   AbsHaskellScript.Ident string -> failure x
 
+transUdent :: AbsHaskellScript.Udent -> Result
+transUdent x = case x of
+  AbsHaskellScript.Udent string -> failure x
+
 transProgram :: AbsHaskellScript.Program -> Result
 transProgram x = case x of
   AbsHaskellScript.Program stmts -> failure x
@@ -29,6 +33,7 @@ transStmt :: AbsHaskellScript.Stmt -> Result
 transStmt x = case x of
   AbsHaskellScript.Decl ident expr -> failure x
   AbsHaskellScript.FunDecl ident1 types ident2 expr -> failure x
+  AbsHaskellScript.DataDecl udent types constructors -> failure x
   AbsHaskellScript.Cond expr block -> failure x
   AbsHaskellScript.CondElse expr block1 block2 -> failure x
   AbsHaskellScript.Ret expr -> failure x
@@ -50,10 +55,20 @@ transType x = case x of
   AbsHaskellScript.FunT types -> failure x
   AbsHaskellScript.ListT type_ -> failure x
   AbsHaskellScript.WildcardT ident -> failure x
+  AbsHaskellScript.DataType udent types -> failure x
+
+transTypeArg :: AbsHaskellScript.TypeArg -> Result
+transTypeArg x = case x of
+  AbsHaskellScript.TypeArg type_ -> failure x
+
+transConstructor :: AbsHaskellScript.Constructor -> Result
+transConstructor x = case x of
+  AbsHaskellScript.Constructor udent typeargs -> failure x
 
 transExpr :: AbsHaskellScript.Expr -> Result
 transExpr x = case x of
   AbsHaskellScript.EVar ident -> failure x
+  AbsHaskellScript.EConstr udent -> failure x
   AbsHaskellScript.ELitInt integer -> failure x
   AbsHaskellScript.EString string -> failure x
   AbsHaskellScript.ELitTrue -> failure x
