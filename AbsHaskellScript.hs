@@ -20,6 +20,7 @@ data Block = Block [Stmt]
 data Stmt
     = Decl Ident Expr
     | FunDecl Ident [Type] Ident Expr
+    | DataDecl Udent [Type] [Constructor]
     | Cond Expr Block
     | CondElse Expr Block Block
     | Ret Expr
@@ -40,10 +41,18 @@ data Type
     | FunT [Type]
     | ListT Type
     | WildcardT Ident
+    | DataType Udent [Type]
+  deriving (C.Eq, C.Ord, C.Show, C.Read)
+
+data TypeArg = TypeArg Type
+  deriving (C.Eq, C.Ord, C.Show, C.Read)
+
+data Constructor = Constructor Udent [TypeArg]
   deriving (C.Eq, C.Ord, C.Show, C.Read)
 
 data Expr
     = EVar Ident
+    | EConstr Udent
     | ELitInt Integer
     | EString String
     | ELitTrue
@@ -73,5 +82,8 @@ data RelOp = LTH | LE | GTH | GE | EQU | NE
   deriving (C.Eq, C.Ord, C.Show, C.Read)
 
 newtype Ident = Ident String
+  deriving (C.Eq, C.Ord, C.Show, C.Read, Data.String.IsString)
+
+newtype Udent = Udent String
   deriving (C.Eq, C.Ord, C.Show, C.Read, Data.String.IsString)
 
