@@ -47,7 +47,15 @@ type Store = Map Loc Value
 
 data RunTimeErrors = DivisionByZeroException
                    | ModByZeroException
+  deriving Show
 
+data TypeCheckErrors = UndefinedName String
+                     | TypeAssertFailed String String
+                     | ReturnTypeVary String String
+                     | SpreadAppliedNotToList
+                     | HeterogenousList
+                     | FunctionApplicationError
+                     | AssertionError String
   deriving Show
 
 -- HaskellScript Interpreter

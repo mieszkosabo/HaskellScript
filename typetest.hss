@@ -1,0 +1,4 @@
+add :: a -> [a] -> [a]
+const add = \a, b => (b);
+
+const res = add(3, [1, 2, 3]);
