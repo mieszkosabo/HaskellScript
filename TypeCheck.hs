@@ -8,77 +8,7 @@ import Data.Maybe(isNothing)
 import AbsHaskellScript
 import Types
 import Substitutions(substitute)
-
-type TEnv = Map VarName Type
-type TypeCheck = ReaderT TEnv (ExceptT TypeCheckErrors IO)
-type ReturnedType = Maybe Type
-
--- utils
-checkIfhomogeneousTypes :: [Type] -> Bool
-checkIfhomogeneousTypes [] = True
-checkIfhomogeneousTypes (x:xs) = all (compareType x) xs
-
-isEqType :: Type -> Bool
-isEqType Int = True
-isEqType Str = True
-isEqType Bool = True
-isEqType Void = True
-isEqType (ListT t) = isEqType t
-isEqType (WildcardT _) = True
-isEqType _ = False
-
-askType :: String -> TypeCheck Type
-askType name = do
-  env <- ask
-  let maybeType = Data.Map.lookup name env
-  case maybeType of
-    Just t -> return t
-    Nothing -> throwError $ UndefinedName name
-
-assertType :: Type -> Type -> TypeCheck ()
--- for now, polimorphic arguments could be dangerous
-assertType _ (WildcardT _) = return ()
-assertType t t' = do
-  if compareType t t' then
-    return ()
-  else throwError $ TypeAssertFailed (show t) (show t')
-
-assert :: Bool -> String -> TypeCheck ()
-assert True _ = return ()
-assert False msg = throwError $ AssertionError msg 
-
-continueTypeCheck :: TypeCheck (TEnv, ReturnedType)
-continueTypeCheck = do
-  env <- ask
-  return (env, Nothing)
-
-assertArgCount :: [Type] -> [Expr] -> TypeCheck ()
-assertArgCount types exprs = do
-  when
-    ((length types == 1 && not (null exprs))
-       || ((length types - 1) < length exprs))
-    $ throwError FunctionApplicationError
-
-declareVarType :: String -> Type -> TypeCheck TEnv
-declareVarType n t = do
-  env <- ask
-  let env' = insert n t env
-  return env'
-
-addArgsTypesToEnv :: [String] -> [Type] -> TypeCheck TEnv
-addArgsTypesToEnv [] [] = ask
-addArgsTypesToEnv names types = do
-  env <- ask
-  foldM f env (zip names types)
-  where
-    f = \env (name, typ) -> local (const env) $ declareVarType name typ
-
-compareType :: Type -> Type -> Bool
-compareType (WildcardT _) _ = True
-compareType _ (WildcardT _) = True
-compareType (ListT _) (ListT Void) = True
-compareType (ListT Void) (ListT _) = True
-compareType t t' = t == t'
+import TypeCheckUtils
 
 -- here we can assume that the arity is valid
 determineTypesAfterApp :: [Type] -> [Expr] -> TypeCheck Type
@@ -110,7 +40,12 @@ evalType (Ternary e1 e2 e3) = do
     return t2
   else throwError $ ReturnTypeVary (show t2) (show t3)
 
---  FIXME: todo lambdas
+-- FIXME: jakieś sprawdzanie by się przydało w sumie, ale jeszce nie wiem jak duże
+evalType (ConciseLambda idents _) =
+  return $ FunT $ replicate (length idents + 1) (WildcardT $ Ident lambdaWildcard)
+
+evalType (LongLambda idents _) = 
+  return $ FunT $ replicate (length idents + 1) (WildcardT $ Ident lambdaWildcard)
 
 -- TODO: jak wymusić używanie spreada tylko wewnątrz list?
 evalType (Spread e) = do
@@ -121,13 +56,12 @@ evalType (Spread e) = do
 
 evalType (ListExpr exprs) = do
   ts <- mapM evalType exprs
-  if checkIfhomogeneousTypes ts then
+  if checkIfhomogeneousTypes (filter (/= Void) ts) then
     return $ ListT (if null ts then Void else head ts)
   else throwError HeterogenousList
 
 evalType (EApp e args) = do
   (FunT argTypes) <- evalType e
-  -- FIXME: tu może też być DataType chyba
   assertArgCount argTypes args
   determineTypesAfterApp argTypes args
 
@@ -170,6 +104,9 @@ evalType (ERel e op e') = do
       mapM_ (assertType Int) ts
       return Bool
 
+-- evalType e = do
+--   liftIO $ print e
+--   return Void
 -- stmts
 
 typeCheckCase :: Case -> Type -> TypeCheck Type
@@ -180,7 +117,19 @@ typeCheckCase (Case (ListExpr [EVar (Ident x), Spread (EVar (Ident xs))]) (Block
   env' <- addArgsTypesToEnv [x, xs] [t, ListT t]
   (_, retType) <- local (const env') (typeCheckStmts stmts)
   return $ fromMaybe Void retType
+typeCheckCase (Case (EApp (EConstr (Udent name)) args) (Block stmts)) _ = do
+  (FunT types) <- askType name
+  names <- argsToStrings args
+  env' <- addArgsTypesToEnv names types
+  (_, retType) <- local (const env') (typeCheckStmts stmts)
+  return $ fromMaybe Void retType
 
+argsToStrings :: [Expr] -> TypeCheck [String]
+argsToStrings = mapM f
+    where 
+      f :: Expr -> TypeCheck String
+      f (EVar (Ident n)) = return n
+      f _ = throwError $ FunctionApplicationError "Error in Case"
 
 typeCheck :: Stmt -> TypeCheck (TEnv, ReturnedType)
 
@@ -188,8 +137,6 @@ typeCheck (Match (Ident ident) cases) = do
   identType <- askType ident
   env <- ask
   evaledCases <- mapM (`typeCheckCase` identType) cases
-  -- liftIO $ print "cases:"
-  -- liftIO $ print evaledCases
   assert (checkIfhomogeneousTypes evaledCases) "different return types of cases in match statement!"
   return (env, Just $ head evaledCases)
 
@@ -221,9 +168,15 @@ typeCheck (FunDecl (Ident name) argTypes (Ident name') lambda) = do
       (_, retType) <- local (const env'') (typeCheckStmts stmts)
       assertType (fromMaybe Void retType) (last argTypes)
       return (insert name (FunT argTypes) env, Nothing)
+    _ -> do -- FIXME: make it more safe
+      t <- evalType lambda
+      return (insert name t env, Nothing)
 
 
--- TODO: datadecl
+typeCheck (DataDecl (Udent name) params constructors) = do
+  let dt = DataType (Udent name) params
+  env <- addConstructorsToEnv constructors dt
+  return (env, Nothing)
 
 typeCheck (Cond e (Block stmts)) = do
   t <- evalType e
@@ -269,4 +222,6 @@ typeCheckStmts (s:rest) = do
   else
     return (env, ret)
 
-runTypeCheck prog = runExceptT $ runReaderT (typeCheckStmts prog) empty
+runTypeCheck stmts = runExceptT $ runReaderT (typeCheckStmts stmts) empty
+
+runPreloadedTypeCheck env stmts = runExceptT $ runReaderT (typeCheckStmts stmts) env

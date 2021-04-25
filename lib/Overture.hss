@@ -76,3 +76,25 @@ const tail = \l => {
       return xs;
     }
 };
+
+take :: Int -> [a] -> [a]
+const take = \n, l => {
+  match l:
+    case [] {
+      return [];
+    }
+    case [x, ...xs] {
+      return [x, ...take(n - 1, xs)];
+    }
+};
+
+drop :: Int -> [a] -> [a]
+const drop = \n, l => {
+  match l:
+    case [] {
+      return [];
+    }
+    case [x, ...xs] {
+      return drop(n - 1, xs);
+    }
+};

@@ -203,8 +203,6 @@ execStmt (Decl (Ident name) e) = do
   return (env', Nothing)
 
 execStmt (FunDecl _ _ (Ident name) e) = do
-  -- todo check idents if equal
-  -- todo typechecking
   value <- eval e
   env' <- declareVar name value
   return (env', Nothing)

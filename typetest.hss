@@ -1,4 +1,27 @@
-add :: a -> [a] -> [a]
-const add = \a, b => (b);
+// simple binary search tree implementation
+data BST(a) = {
+  Nil() | Node (BST(a), a, BST(a))
+};
+toList :: BST(a) -> [a]
+const toList = \t => {
+  match t:
+    case Nil() {
+      return [];
+    }
+    case Node(l, x, r) {
+      return [...toList(l), x, ...toList(r)];
+    }
+};
 
-const res = add(3, [1, 2, 3]);
+insert :: a -> BST(a) -> BST(a)
+const insert = \x, t => {
+  match t:
+    case Nil() {
+      return Node(Nil(), x, Nil());
+    }
+    case Node(l, a, r) {
+      return x < a 
+        ? Node(insert(x, l), a, r) 
+        : Node(l, a, insert(x, r));
+    }
+};

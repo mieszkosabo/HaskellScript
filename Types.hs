@@ -4,7 +4,7 @@ import Data.Map ( Map )
 import Control.Monad.Reader ( ReaderT )
 import Control.Monad.State ( StateT )
 import Control.Monad.Except ( ExceptT )
-import AbsHaskellScript ( Stmt, Ident, TypeArg, Udent)
+import AbsHaskellScript ( Stmt, Ident, TypeArg, Udent, Type)
 
 
 type VarName = String
@@ -54,9 +54,14 @@ data TypeCheckErrors = UndefinedName String
                      | ReturnTypeVary String String
                      | SpreadAppliedNotToList
                      | HeterogenousList
-                     | FunctionApplicationError
+                     | FunctionApplicationError String
                      | AssertionError String
   deriving Show
 
+type TEnv = Map VarName Type
+type TypeCheck = ReaderT TEnv (ExceptT TypeCheckErrors IO)
+type ReturnedType = Maybe Type
+
+lambdaWildcard = "λ"
 -- HaskellScript Interpreter
 type HSI = ReaderT Env (StateT Store (ExceptT RunTimeErrors IO))

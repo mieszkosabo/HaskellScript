@@ -13,6 +13,7 @@ match list:
     _print("tail: ", xs); // [2, 3]
   }
 
+isMember :: a -> [a] -> Bool
 const isMember = \a, l => {
   match l:
     case [] {

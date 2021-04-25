@@ -1,3 +1,4 @@
+apply :: (a -> Void) -> a -> Void
 const apply = \fun, s => {
   fun(s);
 };

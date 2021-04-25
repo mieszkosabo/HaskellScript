@@ -1,4 +1,6 @@
+createPrinter :: String -> (Void)
 const createPrinter = \text => {
+  printer :: Void
   const printer = \ => {
     print(text);
   };

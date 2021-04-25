@@ -3,6 +3,7 @@ import System.IO ( stdin, hGetContents, hPutStrLn, stderr, getContents, hPutStr 
 import System.Environment ( getArgs, getProgName )
 import System.Exit ( exitFailure, exitSuccess )
 import Interpreter
+import TypeCheck
 import Types
 import AbsHaskellScript
 import ErrM
@@ -17,21 +18,31 @@ loadOverture = do
   return (runPreloadedHSI env store)
 
 
+loadOvertureTypes = do
+  input <- readFile "lib/Overture.hss"
+  let (Ok (Program stmts)) = pProgram (myLexer input)
+  (Right (env, _)) <- runTypeCheck stmts
+  return (runPreloadedTypeCheck env)
+
+
 parse :: String -> IO ()
 parse input =
   case pProgram (myLexer input) of
     (Ok parsedProg) -> do
       let Program stmts = parsedProg
       -- todo typechecking
-      
-      preloadedHSI <- loadOverture
-      runtimeRes <- preloadedHSI stmts
-      --runtimeRes <- runHSI stmts
-      case runtimeRes of
-        Left err -> do hPutStrLn stderr ("Runtime Error: " ++ show err); exitFailure
-        Right s -> do
-          -- print s
-          return ()
+      preloadedTypeCheck <- loadOvertureTypes
+      typeCheckRes <- preloadedTypeCheck stmts
+      case typeCheckRes of
+        Left err -> print $ "typecheck error" ++ show err
+        Right _ -> do
+          preloadedHSI <- loadOverture
+          runtimeRes <- preloadedHSI stmts
+          case runtimeRes of
+            Left err -> do hPutStrLn stderr ("Runtime Error: " ++ show err); exitFailure
+            Right s -> do
+              -- print s
+              return ()
     (Bad _) -> hPutStrLn stderr "Error while parsing" >> exitFailure
 
 parseFile :: String -> IO ()

@@ -1,4 +1,6 @@
+createAdder :: Int -> (Int -> Int)
 const createAdder = \n => {
+  adder :: Int -> Int
   const adder = \x => {
     return (x + n);
   };
