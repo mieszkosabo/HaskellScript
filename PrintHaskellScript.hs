@@ -134,7 +134,7 @@ instance Print AbsHaskellScript.Stmt where
   prt i = \case
     AbsHaskellScript.Decl id_ expr -> prPrec i 0 (concatD [doc (showString "const"), prt 0 id_, doc (showString "="), prt 0 expr, doc (showString ";")])
     AbsHaskellScript.FunDecl id_1 types id_2 expr -> prPrec i 0 (concatD [prt 0 id_1, doc (showString "::"), prt 0 types, doc (showString "const"), prt 0 id_2, doc (showString "="), prt 0 expr, doc (showString ";")])
-    AbsHaskellScript.DataDecl udent types constructors -> prPrec i 0 (concatD [doc (showString "data"), prt 0 udent, doc (showString "("), prt 0 types, doc (showString ")"), doc (showString "="), doc (showString "{"), prt 0 constructors, doc (showString "}"), doc (showString ";")])
+    AbsHaskellScript.DataDecl udent typeargs constructors -> prPrec i 0 (concatD [doc (showString "data"), prt 0 udent, doc (showString "("), prt 0 typeargs, doc (showString ")"), doc (showString "="), doc (showString "{"), prt 0 constructors, doc (showString "}"), doc (showString ";")])
     AbsHaskellScript.Cond expr block -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 block])
     AbsHaskellScript.CondElse expr block1 block2 -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 block1, doc (showString "else"), prt 0 block2])
     AbsHaskellScript.Ret expr -> prPrec i 0 (concatD [doc (showString "return"), prt 0 expr, doc (showString ";")])
@@ -163,7 +163,7 @@ instance Print AbsHaskellScript.Type where
     AbsHaskellScript.FunT types -> prPrec i 0 (concatD [doc (showString "("), prt 0 types, doc (showString ")")])
     AbsHaskellScript.ListT type_ -> prPrec i 0 (concatD [doc (showString "["), prt 0 type_, doc (showString "]")])
     AbsHaskellScript.WildcardT id_ -> prPrec i 0 (concatD [prt 0 id_])
-    AbsHaskellScript.DataType udent types -> prPrec i 0 (concatD [prt 0 udent, doc (showString "("), prt 0 types, doc (showString ")")])
+    AbsHaskellScript.DataType udent typeargs -> prPrec i 0 (concatD [prt 0 udent, doc (showString "("), prt 0 typeargs, doc (showString ")")])
   prtList _ [] = concatD []
   prtList _ [x] = concatD [prt 0 x]
   prtList _ (x:xs) = concatD [prt 0 x, doc (showString "->"), prt 0 xs]

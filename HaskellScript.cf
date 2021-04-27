@@ -18,7 +18,7 @@ Decl.      Stmt ::= "const" Ident "=" Expr ";" ;
 
 FunDecl.   Stmt ::= Ident "::"  [Type] "const" Ident "=" Expr ";" ;
 
-DataDecl.  Stmt ::= "data" Udent "(" [Type] ")" "=" "{" [Constructor]  "}" ";" ;
+DataDecl.  Stmt ::= "data" Udent "(" [TypeArg] ")" "=" "{" [Constructor]  "}" ";" ;
 
 Cond.      Stmt ::= "if" "(" Expr ")" Block ;
 
@@ -55,7 +55,7 @@ ListT.     Type ::= "[" Type "]" ;
 
 WildcardT. Type ::= Ident ;
 
-DataType.  Type ::= Udent "(" [Type] ")";
+DataType.  Type ::= Udent "(" [TypeArg] ")";
 
 separator Type "->" ;
 

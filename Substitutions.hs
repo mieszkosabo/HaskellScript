@@ -6,7 +6,7 @@ import Control.Monad.State
 import Data.Map( Map, empty, lookup, insert )
 import AbsHaskellScript
 import Types
-import TypeCheckUtils ( compareType )
+import TypeCheckUtils ( compareType, typeArgsToTypes, typesToTypeArgs )
 
 type Substitutions = Map String Type
 type SubsMonad = StateT Substitutions (ExceptT TypeCheckErrors IO) 
@@ -24,8 +24,8 @@ inferSubs_ (DataType (Udent name) ts) (DataType (Udent name') ts') = do
   if name /= name' then do
     throwError $ FunctionApplicationError "DataType udents don't match"
   else do
-    nts <- zipWithM inferSubs_ ts ts'
-    return $ DataType (Udent name) nts
+    nts <- zipWithM inferSubs_ (typeArgsToTypes ts) (typeArgsToTypes ts')
+    return $ DataType (Udent name) $ typesToTypeArgs nts
 inferSubs_ (ListT t) (ListT t') = do
   nt <- inferSubs_ t t'
   return $ ListT nt
@@ -44,15 +44,22 @@ inferSubs_ (WildcardT (Ident ident)) t = do
       Just t' -> if compareType t t' then
                   return t
                 else throwError $ FunctionApplicationError $ "sth with wildcards" ++ (show t) ++ " oraz" ++ (show t')
+
+inferSubs_ t wildcard@(WildcardT (Ident ident)) = do
+  if ident == lambdaWildcard then
+    return t
+  else inferSubs_ t wildcard
 -- Int, Str, Bool case
 inferSubs_ t t' = if t == t' then
                       return t
-                    else throwError $ FunctionApplicationError "int str bool case"
+                    else do
+                      liftIO $ print t >> print t'
+                      throwError $ FunctionApplicationError "int str bool case"
 
 substitute_ :: Type -> SubsMonad Type
 substitute_ (DataType udent ts) = do
-  ts' <- mapM substitute_ ts
-  return $ DataType udent ts'
+  ts' <- mapM substitute_ $ typeArgsToTypes ts
+  return $ DataType udent $ typesToTypeArgs ts'
 substitute_ (ListT t) = do
   t' <- substitute_ t
   return $ ListT t'

@@ -1,0 +1,155 @@
+// a simple imperative language written in HaskellScript written in Haskell :)
+
+data Exp() = {
+    NumExp(Int) 
+  | VarExp(String) 
+  | PlusExp(Exp(), Exp()) 
+  | MinusExp(Exp(), Exp()) 
+  | TimesExp(Exp(), Exp())
+};
+
+data BExp() = {
+    TrueBExp()
+  | FalseBExp()
+  | NotBExp(BExp())
+  | AndBExp(BExp(), BExp())
+  | LEQBExp(Exp(), Exp())
+};
+
+data Stmt() = {
+    AssStmt(String, Exp()) 
+  | SeqStmt(Stmt(), Stmt())
+  | IfStmt(BExp(), Stmt(), Stmt())
+  | WhileStmt(BExp(), Stmt())
+};
+
+// Keeping state as a list of pairs of variables and values.
+// State will be typed [Pair(String, Int)] (type aliases would be useful,
+// but they're not supported in HaskellScript atm).
+// Only integer values are allowed.
+
+data Pair(a, b) = {
+  P(a, b) | Nil()
+};
+
+lookup :: String -> [Pair(String, Int)] -> Int
+const lookup = \s, state => {
+  match state:
+    case [] {
+      return -1; // some default value if not found
+    }
+    case [x, ...xs] {
+      match x: // here nested pattern matching would be cool, but again, not supported atm
+        case P(s', val) {
+          if (s == s') {
+            return val;
+          }
+          else {
+            return lookup(s, xs);
+          }
+        }
+    }
+};
+
+insert :: String -> Int -> [Pair(String, Int)] -> [Pair(String, Int)]
+const insert = \name, val, state => {
+  match state:
+    case [] {
+      return [P(name, val)];
+    }
+    case [x, ...xs] {
+      match x:
+        case P(name', val') {
+          return name == name'
+            ? [P(name, val), ...xs] 
+            : [x, ...insert(name, val, xs)];
+        }
+    }
+  return [P(name, val), ...state];
+};
+
+// FIXME: type of an empty array
+const initState = [P("elo", 11)];
+
+// semantic functions
+
+semE :: Exp() -> [Pair(String, Int)] -> Int
+const semE = \expr, state => {
+  match expr:
+    case NumExp(n) {
+      return n;
+    }
+    case VarExp(name) {
+      // optimistic lookup
+      return lookup(name, state);
+    }
+    case PlusExp(e, e') {
+      return semE(e, state) + semE(e', state);
+    }
+    case TimesExp(e, e') {
+      return semE(e, state) * semE(e', state);
+    }
+};
+
+semB :: BExp() -> [Pair(String, Int)] -> Bool
+const semB = \b, state => {
+  match b:
+    case TrueBExp() {
+      return true;
+    }
+    case FalseBExp() {
+      return false;
+    }
+    case NotBExp(b) {
+      return not semB(b, state);
+    }
+    case AndBExp(b, b') {
+      return semB(b, state) and semB(b', state);
+    }
+    case LEQBExp(e, e') {
+      return semE(e, state) <= semE(e', state);
+    }
+};
+
+semS :: Stmt() -> [Pair(String, Int)] -> [Pair(String, Int)]
+const semS = \stmt, state => {
+  match stmt:
+    case SeqStmt(s, s') {
+      return semS(s', (semS(s, state)));
+    }
+    case AssStmt(name, e) {
+      return insert(name, semE(e, state), state);
+    }
+    case IfStmt(b, s, s') {
+      return semB(b, state) ? semS(s, state) : semS(s', state);
+    }
+    case WhileStmt(b, s) {
+      return semB(b, state) ? semS(WhileStmt(b, s), semS(s, state)) : state;
+    }
+};
+
+// example program: factorial
+// res = 1;
+// i = 1;
+// while (i <= n)
+//     res := res * i;
+//     i := i + 1;
+
+print(
+  semS(
+    SeqStmt(
+      AssStmt("res", NumExp(1)),
+      SeqStmt(
+        AssStmt("i", NumExp(1)),
+        WhileStmt(
+          LEQBExp(VarExp("i"), VarExp("n")),
+          SeqStmt(
+            AssStmt("res", TimesExp(VarExp("res"), VarExp("i"))),
+            AssStmt("i",   PlusExp(VarExp("i"), NumExp(1))),
+          )
+        )
+      )
+    ),
+    [P("n", 5)]
+  )
+); // 120

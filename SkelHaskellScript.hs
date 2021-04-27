@@ -33,7 +33,7 @@ transStmt :: AbsHaskellScript.Stmt -> Result
 transStmt x = case x of
   AbsHaskellScript.Decl ident expr -> failure x
   AbsHaskellScript.FunDecl ident1 types ident2 expr -> failure x
-  AbsHaskellScript.DataDecl udent types constructors -> failure x
+  AbsHaskellScript.DataDecl udent typeargs constructors -> failure x
   AbsHaskellScript.Cond expr block -> failure x
   AbsHaskellScript.CondElse expr block1 block2 -> failure x
   AbsHaskellScript.Ret expr -> failure x
@@ -55,7 +55,7 @@ transType x = case x of
   AbsHaskellScript.FunT types -> failure x
   AbsHaskellScript.ListT type_ -> failure x
   AbsHaskellScript.WildcardT ident -> failure x
-  AbsHaskellScript.DataType udent types -> failure x
+  AbsHaskellScript.DataType udent typeargs -> failure x
 
 transTypeArg :: AbsHaskellScript.TypeArg -> Result
 transTypeArg x = case x of

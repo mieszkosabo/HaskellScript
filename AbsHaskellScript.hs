@@ -20,7 +20,7 @@ data Block = Block [Stmt]
 data Stmt
     = Decl Ident Expr
     | FunDecl Ident [Type] Ident Expr
-    | DataDecl Udent [Type] [Constructor]
+    | DataDecl Udent [TypeArg] [Constructor]
     | Cond Expr Block
     | CondElse Expr Block Block
     | Ret Expr
@@ -41,7 +41,7 @@ data Type
     | FunT [Type]
     | ListT Type
     | WildcardT Ident
-    | DataType Udent [Type]
+    | DataType Udent [TypeArg]
   deriving (C.Eq, C.Ord, C.Show, C.Read)
 
 data TypeArg = TypeArg Type

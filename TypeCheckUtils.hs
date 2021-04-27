@@ -76,6 +76,9 @@ addConstructorsToEnv constructors dt = do
 typeArgsToTypes :: [TypeArg] -> [Type]
 typeArgsToTypes = map (\(TypeArg t) -> t)
 
+typesToTypeArgs :: [Type] -> [TypeArg]
+typesToTypeArgs = map TypeArg
+
 compareType :: Type -> Type -> Bool
 compareType (WildcardT _) _ = True
 compareType _ (WildcardT _) = True
