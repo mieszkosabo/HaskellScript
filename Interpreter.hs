@@ -72,9 +72,6 @@ checkEq :: Value -> Value -> Bool
 checkEq (IntVal n) (IntVal n') = evalRelOp EQU n n'
 checkEq (StringVal s) (StringVal s') = s == s'
 checkEq (BoolVal b) (BoolVal b') = b == b'
-checkEq (ListVal vs) (ListVal vs') = 
-  (length vs == length vs')
-    && foldr (\ (v, v') res -> checkEq v v' && res) True (zip vs vs')
 checkEq _ _ = False
 
 addArgsToEnv :: [String] -> [Value] -> HSI Env
@@ -118,16 +115,19 @@ eval (EApp e args) = do
       -- TODO: errors
       return $ DataVal (udent, values)
 
-eval (ListExpr expressions) = do
-  values <- foldM f [] (reverse expressions)
-  return $ ListVal values
+eval (ListExpr expressions) =
+  foldM f (DataVal (Udent "EmptyList_", [])) (reverse expressions)
   where
     f vals (Spread e) = do
-      ListVal values <- eval e
-      return $ values ++ vals
+      r <- eval e
+      let values = g r
+      return $ foldr (\val acc -> DataVal (Udent "L_", [val, acc])) vals values
+        where 
+          g (DataVal (_, [])) = []
+          g (DataVal (_, [x, rest])) = x:g rest
     f vals e = do
       value <- eval e
-      return $ value:vals
+      return $ DataVal (Udent "L_", [value, vals])
 
 eval (EVar (Ident name)) = varToValue name
 eval (EString s) = return $ StringVal s
@@ -259,10 +259,10 @@ execStmt (Match (Ident name) cases) = do
 runCase :: Case -> Value -> HSI (Env, ReturnedValue) 
 runCase (Case (ListExpr []) (Block stmts)) _ = do
   execStmts stmts
-runCase (Case (ListExpr [EVar (Ident x), Spread (EVar (Ident xs))]) (Block stmts)) (ListVal (x':xs')) = do
+runCase (Case (ListExpr [EVar (Ident x), Spread (EVar (Ident xs))]) (Block stmts)) (DataVal (_, [x', xs'])) = do
   env <- ask
   env' <- local (const env) $ declareVar x x'
-  env' <- local (const env') $ declareVar xs (ListVal xs')
+  env' <- local (const env') $ declareVar xs xs' 
   (_, ret) <- local (const env') $ execStmts stmts
   return (env, ret)
 
@@ -274,8 +274,9 @@ runCase (Case (EApp _ exprs) (Block stmts)) (DataVal (_, vals)) = do
   return (env, ret)
 
 doesCaseMatch :: Value -> Case -> Bool
-doesCaseMatch  (ListVal []) (Case (ListExpr []) _) = True
-doesCaseMatch  (ListVal (_:_)) (Case (ListExpr [EVar _, Spread _]) _) = True
+-- syntax sugar for lists
+doesCaseMatch  (DataVal (Udent "EmptyList_", _)) (Case (ListExpr []) _) = True
+doesCaseMatch  (DataVal (Udent "L_", _)) (Case (ListExpr [EVar _, Spread _]) _) = True
 
 doesCaseMatch (DataVal (udent, vals)) (Case (EApp (EConstr udent') exprs) _) =
   udent == udent' && length vals == length exprs

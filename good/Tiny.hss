@@ -68,9 +68,6 @@ const insert = \name, val, state => {
   return [P(name, val), ...state];
 };
 
-// FIXME: type of an empty array
-const initState = [P("elo", 11)];
-
 // semantic functions
 
 semE :: Exp() -> [Pair(String, Int)] -> Int
@@ -127,6 +124,8 @@ const semS = \stmt, state => {
       return semB(b, state) ? semS(WhileStmt(b, s), semS(s, state)) : state;
     }
 };
+
+const initState = [];
 
 // example program: factorial
 // res = 1;

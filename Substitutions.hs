@@ -26,6 +26,8 @@ inferSubs_ (DataType (Udent name) ts) (DataType (Udent name') ts') = do
   else do
     nts <- zipWithM inferSubs_ (typeArgsToTypes ts) (typeArgsToTypes ts')
     return $ DataType (Udent name) $ typesToTypeArgs nts
+inferSubs_ (ListT t) (ListT Void) = return t
+inferSubs_ (ListT Void) (ListT t) = return t
 inferSubs_ (ListT t) (ListT t') = do
   nt <- inferSubs_ t t'
   return $ ListT nt

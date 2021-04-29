@@ -1,6 +1,10 @@
 print :: a -> Void
 const print = \x => { _print(x); };
 
+data List_(a) = {
+  EmptyList_() | L_(a, List_(a))
+};
+
 member :: a -> [a] -> Bool
 const member = \a, l => {
   match l:
