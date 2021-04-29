@@ -1,0 +1,9 @@
+const a = [1, ...[2, 3], 4];
+const b = [];
+match a:
+  case [] {
+    print("pusta");
+  }
+  case [x, ...xs] {
+    _print(x, xs);
+  }

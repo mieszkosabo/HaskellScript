@@ -68,7 +68,7 @@ All other symbols are terminals.
   | //Block// | -> | ``{`` //[Stmt]// ``}``
   | //Stmt// | -> | ``const`` //Ident// ``=`` //Expr// ``;``
   |  |  **|**  | //Ident// ``::`` //[Type]// ``const`` //Ident// ``=`` //Expr// ``;``
-  |  |  **|**  | ``data`` //Udent// ``(`` //[Type]// ``)`` ``=`` ``{`` //[Constructor]// ``}`` ``;``
+  |  |  **|**  | ``data`` //Udent// ``(`` //[TypeArg]// ``)`` ``=`` ``{`` //[Constructor]// ``}`` ``;``
   |  |  **|**  | ``if`` ``(`` //Expr// ``)`` //Block//
   |  |  **|**  | ``if`` ``(`` //Expr// ``)`` //Block// ``else`` //Block//
   |  |  **|**  | ``return`` //Expr// ``;``
@@ -86,7 +86,7 @@ All other symbols are terminals.
   |  |  **|**  | ``(`` //[Type]// ``)``
   |  |  **|**  | ``[`` //Type// ``]``
   |  |  **|**  | //Ident//
-  |  |  **|**  | //Udent// ``(`` //[Type]// ``)``
+  |  |  **|**  | //Udent// ``(`` //[TypeArg]// ``)``
   | //[Type]// | -> | **eps**
   |  |  **|**  | //Type//
   |  |  **|**  | //Type// ``->`` //[Type]//
