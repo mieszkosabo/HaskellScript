@@ -53,17 +53,17 @@ type ReturnedValue = Maybe Value
 type Env = Map VarName Loc
 type Store = Map Loc Value
 
-data RunTimeErrors = DivisionByZeroException
-                   | ModByZeroException
+data RunTimeErrors = DivisionByZeroException BNFC'Position
+                   | ModByZeroException BNFC'Position
   deriving Show
 
 data TypeCheckErrors = UndefinedName String
-                     | TypeAssertFailed String String
-                     | ReturnTypeVary String String
-                     | SpreadAppliedNotToList
-                     | HeterogenousList
-                     | FunctionApplicationError String
-                     | AssertionError String
+                     | TypeAssertFailed BNFC'Position String String
+                     | ReturnTypeVary BNFC'Position String String
+                     | SpreadAppliedNotToList BNFC'Position
+                     | HeterogenousList BNFC'Position
+                     | FunctionApplicationError BNFC'Position String
+                     | AssertionError BNFC'Position String
                      | ReassignError String
   deriving Show
 

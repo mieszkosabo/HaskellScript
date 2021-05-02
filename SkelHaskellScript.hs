@@ -21,88 +21,88 @@ transUdent :: AbsHaskellScript.Udent -> Result
 transUdent x = case x of
   AbsHaskellScript.Udent string -> failure x
 
-transProgram :: AbsHaskellScript.Program -> Result
+transProgram :: Show a => AbsHaskellScript.Program' a -> Result
 transProgram x = case x of
-  AbsHaskellScript.Program stmts -> failure x
+  AbsHaskellScript.Program _ stmts -> failure x
 
-transBlock :: AbsHaskellScript.Block -> Result
+transBlock :: Show a => AbsHaskellScript.Block' a -> Result
 transBlock x = case x of
-  AbsHaskellScript.Block stmts -> failure x
+  AbsHaskellScript.Block _ stmts -> failure x
 
-transStmt :: AbsHaskellScript.Stmt -> Result
+transStmt :: Show a => AbsHaskellScript.Stmt' a -> Result
 transStmt x = case x of
-  AbsHaskellScript.Decl ident expr -> failure x
-  AbsHaskellScript.FunDecl ident1 types ident2 expr -> failure x
-  AbsHaskellScript.DataDecl udent typeargs constructors -> failure x
-  AbsHaskellScript.Cond expr block -> failure x
-  AbsHaskellScript.CondElse expr block1 block2 -> failure x
-  AbsHaskellScript.Ret expr -> failure x
-  AbsHaskellScript.VoidRet -> failure x
-  AbsHaskellScript.Print exprs -> failure x
-  AbsHaskellScript.Match ident cases -> failure x
-  AbsHaskellScript.SExp expr -> failure x
+  AbsHaskellScript.Decl _ ident expr -> failure x
+  AbsHaskellScript.FunDecl _ ident1 types ident2 expr -> failure x
+  AbsHaskellScript.DataDecl _ udent typeargs constructors -> failure x
+  AbsHaskellScript.Cond _ expr block -> failure x
+  AbsHaskellScript.CondElse _ expr block1 block2 -> failure x
+  AbsHaskellScript.Ret _ expr -> failure x
+  AbsHaskellScript.VoidRet _ -> failure x
+  AbsHaskellScript.Print _ exprs -> failure x
+  AbsHaskellScript.Match _ ident cases -> failure x
+  AbsHaskellScript.SExp _ expr -> failure x
 
-transCase :: AbsHaskellScript.Case -> Result
+transCase :: Show a => AbsHaskellScript.Case' a -> Result
 transCase x = case x of
-  AbsHaskellScript.Case expr block -> failure x
+  AbsHaskellScript.Case _ expr block -> failure x
 
-transType :: AbsHaskellScript.Type -> Result
+transType :: Show a => AbsHaskellScript.Type' a -> Result
 transType x = case x of
-  AbsHaskellScript.Int -> failure x
-  AbsHaskellScript.Str -> failure x
-  AbsHaskellScript.Bool -> failure x
-  AbsHaskellScript.Void -> failure x
-  AbsHaskellScript.FunT types -> failure x
-  AbsHaskellScript.ListT type_ -> failure x
-  AbsHaskellScript.WildcardT ident -> failure x
-  AbsHaskellScript.DataType udent typeargs -> failure x
+  AbsHaskellScript.Int _ -> failure x
+  AbsHaskellScript.Str _ -> failure x
+  AbsHaskellScript.Bool _ -> failure x
+  AbsHaskellScript.Void _ -> failure x
+  AbsHaskellScript.FunT _ types -> failure x
+  AbsHaskellScript.ListT _ type_ -> failure x
+  AbsHaskellScript.WildcardT _ ident -> failure x
+  AbsHaskellScript.DataType _ udent typeargs -> failure x
 
-transTypeArg :: AbsHaskellScript.TypeArg -> Result
+transTypeArg :: Show a => AbsHaskellScript.TypeArg' a -> Result
 transTypeArg x = case x of
-  AbsHaskellScript.TypeArg type_ -> failure x
+  AbsHaskellScript.TypeArg _ type_ -> failure x
 
-transConstructor :: AbsHaskellScript.Constructor -> Result
+transConstructor :: Show a => AbsHaskellScript.Constructor' a -> Result
 transConstructor x = case x of
-  AbsHaskellScript.Constructor udent typeargs -> failure x
+  AbsHaskellScript.Constructor _ udent typeargs -> failure x
 
-transExpr :: AbsHaskellScript.Expr -> Result
+transExpr :: Show a => AbsHaskellScript.Expr' a -> Result
 transExpr x = case x of
-  AbsHaskellScript.EVar ident -> failure x
-  AbsHaskellScript.EConstr udent -> failure x
-  AbsHaskellScript.ELitInt integer -> failure x
-  AbsHaskellScript.EString string -> failure x
-  AbsHaskellScript.ELitTrue -> failure x
-  AbsHaskellScript.ELitFalse -> failure x
-  AbsHaskellScript.Ternary expr1 expr2 expr3 -> failure x
-  AbsHaskellScript.LongLambda idents block -> failure x
-  AbsHaskellScript.ConciseLambda idents expr -> failure x
-  AbsHaskellScript.Spread expr -> failure x
-  AbsHaskellScript.ListExpr exprs -> failure x
-  AbsHaskellScript.EApp expr exprs -> failure x
-  AbsHaskellScript.Neg expr -> failure x
-  AbsHaskellScript.Not expr -> failure x
-  AbsHaskellScript.EMul expr1 mulop expr2 -> failure x
-  AbsHaskellScript.EAdd expr1 addop expr2 -> failure x
-  AbsHaskellScript.ERel expr1 relop expr2 -> failure x
-  AbsHaskellScript.EAnd expr1 expr2 -> failure x
-  AbsHaskellScript.EOr expr1 expr2 -> failure x
+  AbsHaskellScript.EVar _ ident -> failure x
+  AbsHaskellScript.EConstr _ udent -> failure x
+  AbsHaskellScript.ELitInt _ integer -> failure x
+  AbsHaskellScript.EString _ string -> failure x
+  AbsHaskellScript.ELitTrue _ -> failure x
+  AbsHaskellScript.ELitFalse _ -> failure x
+  AbsHaskellScript.Ternary _ expr1 expr2 expr3 -> failure x
+  AbsHaskellScript.LongLambda _ idents block -> failure x
+  AbsHaskellScript.ConciseLambda _ idents expr -> failure x
+  AbsHaskellScript.Spread _ expr -> failure x
+  AbsHaskellScript.ListExpr _ exprs -> failure x
+  AbsHaskellScript.EApp _ expr exprs -> failure x
+  AbsHaskellScript.Neg _ expr -> failure x
+  AbsHaskellScript.Not _ expr -> failure x
+  AbsHaskellScript.EMul _ expr1 mulop expr2 -> failure x
+  AbsHaskellScript.EAdd _ expr1 addop expr2 -> failure x
+  AbsHaskellScript.ERel _ expr1 relop expr2 -> failure x
+  AbsHaskellScript.EAnd _ expr1 expr2 -> failure x
+  AbsHaskellScript.EOr _ expr1 expr2 -> failure x
 
-transAddOp :: AbsHaskellScript.AddOp -> Result
+transAddOp :: Show a => AbsHaskellScript.AddOp' a -> Result
 transAddOp x = case x of
-  AbsHaskellScript.Plus -> failure x
-  AbsHaskellScript.Minus -> failure x
+  AbsHaskellScript.Plus _ -> failure x
+  AbsHaskellScript.Minus _ -> failure x
 
-transMulOp :: AbsHaskellScript.MulOp -> Result
+transMulOp :: Show a => AbsHaskellScript.MulOp' a -> Result
 transMulOp x = case x of
-  AbsHaskellScript.Times -> failure x
-  AbsHaskellScript.Div -> failure x
-  AbsHaskellScript.Mod -> failure x
+  AbsHaskellScript.Times _ -> failure x
+  AbsHaskellScript.Div _ -> failure x
+  AbsHaskellScript.Mod _ -> failure x
 
-transRelOp :: AbsHaskellScript.RelOp -> Result
+transRelOp :: Show a => AbsHaskellScript.RelOp' a -> Result
 transRelOp x = case x of
-  AbsHaskellScript.LTH -> failure x
-  AbsHaskellScript.LE -> failure x
-  AbsHaskellScript.GTH -> failure x
-  AbsHaskellScript.GE -> failure x
-  AbsHaskellScript.EQU -> failure x
-  AbsHaskellScript.NE -> failure x
+  AbsHaskellScript.LTH _ -> failure x
+  AbsHaskellScript.LE _ -> failure x
+  AbsHaskellScript.GTH _ -> failure x
+  AbsHaskellScript.GE _ -> failure x
+  AbsHaskellScript.EQU _ -> failure x
+  AbsHaskellScript.NE _ -> failure x

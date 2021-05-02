@@ -17,7 +17,7 @@ all : TestHaskellScript
 # Rules for building the parser.
 
 AbsHaskellScript.hs LexHaskellScript.x ParHaskellScript.y PrintHaskellScript.hs TestHaskellScript.hs : HaskellScript.cf
-	bnfc --haskell HaskellScript.cf
+	bnfc --haskell --functor HaskellScript.cf
 
 %.hs : %.y
 	${HAPPY} ${HAPPY_OPTS} $<

@@ -116,125 +116,125 @@ instance Print AbsHaskellScript.Ident where
 instance Print AbsHaskellScript.Udent where
   prt _ (AbsHaskellScript.Udent i) = doc $ showString i
 
-instance Print AbsHaskellScript.Program where
+instance Print (AbsHaskellScript.Program' a) where
   prt i = \case
-    AbsHaskellScript.Program stmts -> prPrec i 0 (concatD [prt 0 stmts])
+    AbsHaskellScript.Program _ stmts -> prPrec i 0 (concatD [prt 0 stmts])
 
 instance Print [AbsHaskellScript.Ident] where
   prt = prtList
 
-instance Print [AbsHaskellScript.Stmt] where
+instance Print [AbsHaskellScript.Stmt' a] where
   prt = prtList
 
-instance Print AbsHaskellScript.Block where
+instance Print (AbsHaskellScript.Block' a) where
   prt i = \case
-    AbsHaskellScript.Block stmts -> prPrec i 0 (concatD [doc (showString "{"), prt 0 stmts, doc (showString "}")])
+    AbsHaskellScript.Block _ stmts -> prPrec i 0 (concatD [doc (showString "{"), prt 0 stmts, doc (showString "}")])
 
-instance Print AbsHaskellScript.Stmt where
+instance Print (AbsHaskellScript.Stmt' a) where
   prt i = \case
-    AbsHaskellScript.Decl id_ expr -> prPrec i 0 (concatD [doc (showString "const"), prt 0 id_, doc (showString "="), prt 0 expr, doc (showString ";")])
-    AbsHaskellScript.FunDecl id_1 types id_2 expr -> prPrec i 0 (concatD [prt 0 id_1, doc (showString "::"), prt 0 types, doc (showString "const"), prt 0 id_2, doc (showString "="), prt 0 expr, doc (showString ";")])
-    AbsHaskellScript.DataDecl udent typeargs constructors -> prPrec i 0 (concatD [doc (showString "data"), prt 0 udent, doc (showString "("), prt 0 typeargs, doc (showString ")"), doc (showString "="), doc (showString "{"), prt 0 constructors, doc (showString "}"), doc (showString ";")])
-    AbsHaskellScript.Cond expr block -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 block])
-    AbsHaskellScript.CondElse expr block1 block2 -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 block1, doc (showString "else"), prt 0 block2])
-    AbsHaskellScript.Ret expr -> prPrec i 0 (concatD [doc (showString "return"), prt 0 expr, doc (showString ";")])
-    AbsHaskellScript.VoidRet -> prPrec i 0 (concatD [doc (showString "return;")])
-    AbsHaskellScript.Print exprs -> prPrec i 0 (concatD [doc (showString "_print"), doc (showString "("), prt 0 exprs, doc (showString ")"), doc (showString ";")])
-    AbsHaskellScript.Match id_ cases -> prPrec i 0 (concatD [doc (showString "match"), prt 0 id_, doc (showString ":"), prt 0 cases])
-    AbsHaskellScript.SExp expr -> prPrec i 0 (concatD [prt 0 expr, doc (showString ";")])
+    AbsHaskellScript.Decl _ id_ expr -> prPrec i 0 (concatD [doc (showString "const"), prt 0 id_, doc (showString "="), prt 0 expr, doc (showString ";")])
+    AbsHaskellScript.FunDecl _ id_1 types id_2 expr -> prPrec i 0 (concatD [prt 0 id_1, doc (showString "::"), prt 0 types, doc (showString "const"), prt 0 id_2, doc (showString "="), prt 0 expr, doc (showString ";")])
+    AbsHaskellScript.DataDecl _ udent typeargs constructors -> prPrec i 0 (concatD [doc (showString "data"), prt 0 udent, doc (showString "("), prt 0 typeargs, doc (showString ")"), doc (showString "="), doc (showString "{"), prt 0 constructors, doc (showString "}"), doc (showString ";")])
+    AbsHaskellScript.Cond _ expr block -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 block])
+    AbsHaskellScript.CondElse _ expr block1 block2 -> prPrec i 0 (concatD [doc (showString "if"), doc (showString "("), prt 0 expr, doc (showString ")"), prt 0 block1, doc (showString "else"), prt 0 block2])
+    AbsHaskellScript.Ret _ expr -> prPrec i 0 (concatD [doc (showString "return"), prt 0 expr, doc (showString ";")])
+    AbsHaskellScript.VoidRet _ -> prPrec i 0 (concatD [doc (showString "return;")])
+    AbsHaskellScript.Print _ exprs -> prPrec i 0 (concatD [doc (showString "_print"), doc (showString "("), prt 0 exprs, doc (showString ")"), doc (showString ";")])
+    AbsHaskellScript.Match _ id_ cases -> prPrec i 0 (concatD [doc (showString "match"), prt 0 id_, doc (showString ":"), prt 0 cases])
+    AbsHaskellScript.SExp _ expr -> prPrec i 0 (concatD [prt 0 expr, doc (showString ";")])
   prtList _ [] = concatD []
   prtList _ (x:xs) = concatD [prt 0 x, prt 0 xs]
 
-instance Print AbsHaskellScript.Case where
+instance Print (AbsHaskellScript.Case' a) where
   prt i = \case
-    AbsHaskellScript.Case expr block -> prPrec i 0 (concatD [doc (showString "case"), prt 0 expr, prt 0 block])
+    AbsHaskellScript.Case _ expr block -> prPrec i 0 (concatD [doc (showString "case"), prt 0 expr, prt 0 block])
   prtList _ [] = concatD []
   prtList _ (x:xs) = concatD [prt 0 x, prt 0 xs]
 
-instance Print [AbsHaskellScript.Case] where
+instance Print [AbsHaskellScript.Case' a] where
   prt = prtList
 
-instance Print AbsHaskellScript.Type where
+instance Print (AbsHaskellScript.Type' a) where
   prt i = \case
-    AbsHaskellScript.Int -> prPrec i 0 (concatD [doc (showString "Int")])
-    AbsHaskellScript.Str -> prPrec i 0 (concatD [doc (showString "String")])
-    AbsHaskellScript.Bool -> prPrec i 0 (concatD [doc (showString "Bool")])
-    AbsHaskellScript.Void -> prPrec i 0 (concatD [doc (showString "Void")])
-    AbsHaskellScript.FunT types -> prPrec i 0 (concatD [doc (showString "("), prt 0 types, doc (showString ")")])
-    AbsHaskellScript.ListT type_ -> prPrec i 0 (concatD [doc (showString "["), prt 0 type_, doc (showString "]")])
-    AbsHaskellScript.WildcardT id_ -> prPrec i 0 (concatD [prt 0 id_])
-    AbsHaskellScript.DataType udent typeargs -> prPrec i 0 (concatD [prt 0 udent, doc (showString "("), prt 0 typeargs, doc (showString ")")])
+    AbsHaskellScript.Int _ -> prPrec i 0 (concatD [doc (showString "Int")])
+    AbsHaskellScript.Str _ -> prPrec i 0 (concatD [doc (showString "String")])
+    AbsHaskellScript.Bool _ -> prPrec i 0 (concatD [doc (showString "Bool")])
+    AbsHaskellScript.Void _ -> prPrec i 0 (concatD [doc (showString "Void")])
+    AbsHaskellScript.FunT _ types -> prPrec i 0 (concatD [doc (showString "("), prt 0 types, doc (showString ")")])
+    AbsHaskellScript.ListT _ type_ -> prPrec i 0 (concatD [doc (showString "["), prt 0 type_, doc (showString "]")])
+    AbsHaskellScript.WildcardT _ id_ -> prPrec i 0 (concatD [prt 0 id_])
+    AbsHaskellScript.DataType _ udent typeargs -> prPrec i 0 (concatD [prt 0 udent, doc (showString "("), prt 0 typeargs, doc (showString ")")])
   prtList _ [] = concatD []
   prtList _ [x] = concatD [prt 0 x]
   prtList _ (x:xs) = concatD [prt 0 x, doc (showString "->"), prt 0 xs]
 
-instance Print [AbsHaskellScript.Type] where
+instance Print [AbsHaskellScript.Type' a] where
   prt = prtList
 
-instance Print AbsHaskellScript.TypeArg where
+instance Print (AbsHaskellScript.TypeArg' a) where
   prt i = \case
-    AbsHaskellScript.TypeArg type_ -> prPrec i 0 (concatD [prt 0 type_])
+    AbsHaskellScript.TypeArg _ type_ -> prPrec i 0 (concatD [prt 0 type_])
   prtList _ [] = concatD []
   prtList _ [x] = concatD [prt 0 x]
   prtList _ (x:xs) = concatD [prt 0 x, doc (showString ","), prt 0 xs]
 
-instance Print [AbsHaskellScript.TypeArg] where
+instance Print [AbsHaskellScript.TypeArg' a] where
   prt = prtList
 
-instance Print AbsHaskellScript.Constructor where
+instance Print (AbsHaskellScript.Constructor' a) where
   prt i = \case
-    AbsHaskellScript.Constructor udent typeargs -> prPrec i 0 (concatD [prt 0 udent, doc (showString "("), prt 0 typeargs, doc (showString ")")])
+    AbsHaskellScript.Constructor _ udent typeargs -> prPrec i 0 (concatD [prt 0 udent, doc (showString "("), prt 0 typeargs, doc (showString ")")])
   prtList _ [x] = concatD [prt 0 x]
   prtList _ (x:xs) = concatD [prt 0 x, doc (showString "|"), prt 0 xs]
 
-instance Print [AbsHaskellScript.Constructor] where
+instance Print [AbsHaskellScript.Constructor' a] where
   prt = prtList
 
-instance Print AbsHaskellScript.Expr where
+instance Print (AbsHaskellScript.Expr' a) where
   prt i = \case
-    AbsHaskellScript.EVar id_ -> prPrec i 8 (concatD [prt 0 id_])
-    AbsHaskellScript.EConstr udent -> prPrec i 8 (concatD [prt 0 udent])
-    AbsHaskellScript.ELitInt n -> prPrec i 8 (concatD [prt 0 n])
-    AbsHaskellScript.EString str -> prPrec i 8 (concatD [prt 0 str])
-    AbsHaskellScript.ELitTrue -> prPrec i 8 (concatD [doc (showString "true")])
-    AbsHaskellScript.ELitFalse -> prPrec i 8 (concatD [doc (showString "false")])
-    AbsHaskellScript.Ternary expr1 expr2 expr3 -> prPrec i 0 (concatD [prt 1 expr1, doc (showString "?"), prt 1 expr2, doc (showString ":"), prt 1 expr3])
-    AbsHaskellScript.LongLambda ids block -> prPrec i 7 (concatD [doc (showString "\\"), prt 0 ids, doc (showString "=>"), prt 0 block])
-    AbsHaskellScript.ConciseLambda ids expr -> prPrec i 7 (concatD [doc (showString "\\"), prt 0 ids, doc (showString "=>"), prt 8 expr])
-    AbsHaskellScript.Spread expr -> prPrec i 0 (concatD [doc (showString "..."), prt 1 expr])
-    AbsHaskellScript.ListExpr exprs -> prPrec i 7 (concatD [doc (showString "["), prt 0 exprs, doc (showString "]")])
-    AbsHaskellScript.EApp expr exprs -> prPrec i 6 (concatD [prt 7 expr, doc (showString "("), prt 0 exprs, doc (showString ")")])
-    AbsHaskellScript.Neg expr -> prPrec i 5 (concatD [doc (showString "-"), prt 6 expr])
-    AbsHaskellScript.Not expr -> prPrec i 5 (concatD [doc (showString "not"), prt 6 expr])
-    AbsHaskellScript.EMul expr1 mulop expr2 -> prPrec i 4 (concatD [prt 4 expr1, prt 0 mulop, prt 5 expr2])
-    AbsHaskellScript.EAdd expr1 addop expr2 -> prPrec i 3 (concatD [prt 3 expr1, prt 0 addop, prt 4 expr2])
-    AbsHaskellScript.ERel expr1 relop expr2 -> prPrec i 2 (concatD [prt 2 expr1, prt 0 relop, prt 3 expr2])
-    AbsHaskellScript.EAnd expr1 expr2 -> prPrec i 1 (concatD [prt 2 expr1, doc (showString "and"), prt 1 expr2])
-    AbsHaskellScript.EOr expr1 expr2 -> prPrec i 0 (concatD [prt 1 expr1, doc (showString "or"), prt 0 expr2])
+    AbsHaskellScript.EVar _ id_ -> prPrec i 8 (concatD [prt 0 id_])
+    AbsHaskellScript.EConstr _ udent -> prPrec i 8 (concatD [prt 0 udent])
+    AbsHaskellScript.ELitInt _ n -> prPrec i 8 (concatD [prt 0 n])
+    AbsHaskellScript.EString _ str -> prPrec i 8 (concatD [prt 0 str])
+    AbsHaskellScript.ELitTrue _ -> prPrec i 8 (concatD [doc (showString "true")])
+    AbsHaskellScript.ELitFalse _ -> prPrec i 8 (concatD [doc (showString "false")])
+    AbsHaskellScript.Ternary _ expr1 expr2 expr3 -> prPrec i 0 (concatD [prt 1 expr1, doc (showString "?"), prt 1 expr2, doc (showString ":"), prt 1 expr3])
+    AbsHaskellScript.LongLambda _ ids block -> prPrec i 7 (concatD [doc (showString "\\"), prt 0 ids, doc (showString "=>"), prt 0 block])
+    AbsHaskellScript.ConciseLambda _ ids expr -> prPrec i 7 (concatD [doc (showString "\\"), prt 0 ids, doc (showString "=>"), prt 8 expr])
+    AbsHaskellScript.Spread _ expr -> prPrec i 0 (concatD [doc (showString "..."), prt 1 expr])
+    AbsHaskellScript.ListExpr _ exprs -> prPrec i 7 (concatD [doc (showString "["), prt 0 exprs, doc (showString "]")])
+    AbsHaskellScript.EApp _ expr exprs -> prPrec i 6 (concatD [prt 7 expr, doc (showString "("), prt 0 exprs, doc (showString ")")])
+    AbsHaskellScript.Neg _ expr -> prPrec i 5 (concatD [doc (showString "-"), prt 6 expr])
+    AbsHaskellScript.Not _ expr -> prPrec i 5 (concatD [doc (showString "not"), prt 6 expr])
+    AbsHaskellScript.EMul _ expr1 mulop expr2 -> prPrec i 4 (concatD [prt 4 expr1, prt 0 mulop, prt 5 expr2])
+    AbsHaskellScript.EAdd _ expr1 addop expr2 -> prPrec i 3 (concatD [prt 3 expr1, prt 0 addop, prt 4 expr2])
+    AbsHaskellScript.ERel _ expr1 relop expr2 -> prPrec i 2 (concatD [prt 2 expr1, prt 0 relop, prt 3 expr2])
+    AbsHaskellScript.EAnd _ expr1 expr2 -> prPrec i 1 (concatD [prt 2 expr1, doc (showString "and"), prt 1 expr2])
+    AbsHaskellScript.EOr _ expr1 expr2 -> prPrec i 0 (concatD [prt 1 expr1, doc (showString "or"), prt 0 expr2])
   prtList _ [] = concatD []
   prtList _ [x] = concatD [prt 0 x]
   prtList _ (x:xs) = concatD [prt 0 x, doc (showString ","), prt 0 xs]
 
-instance Print [AbsHaskellScript.Expr] where
+instance Print [AbsHaskellScript.Expr' a] where
   prt = prtList
 
-instance Print AbsHaskellScript.AddOp where
+instance Print (AbsHaskellScript.AddOp' a) where
   prt i = \case
-    AbsHaskellScript.Plus -> prPrec i 0 (concatD [doc (showString "+")])
-    AbsHaskellScript.Minus -> prPrec i 0 (concatD [doc (showString "-")])
+    AbsHaskellScript.Plus _ -> prPrec i 0 (concatD [doc (showString "+")])
+    AbsHaskellScript.Minus _ -> prPrec i 0 (concatD [doc (showString "-")])
 
-instance Print AbsHaskellScript.MulOp where
+instance Print (AbsHaskellScript.MulOp' a) where
   prt i = \case
-    AbsHaskellScript.Times -> prPrec i 0 (concatD [doc (showString "*")])
-    AbsHaskellScript.Div -> prPrec i 0 (concatD [doc (showString "/")])
-    AbsHaskellScript.Mod -> prPrec i 0 (concatD [doc (showString "%")])
+    AbsHaskellScript.Times _ -> prPrec i 0 (concatD [doc (showString "*")])
+    AbsHaskellScript.Div _ -> prPrec i 0 (concatD [doc (showString "/")])
+    AbsHaskellScript.Mod _ -> prPrec i 0 (concatD [doc (showString "%")])
 
-instance Print AbsHaskellScript.RelOp where
+instance Print (AbsHaskellScript.RelOp' a) where
   prt i = \case
-    AbsHaskellScript.LTH -> prPrec i 0 (concatD [doc (showString "<")])
-    AbsHaskellScript.LE -> prPrec i 0 (concatD [doc (showString "<=")])
-    AbsHaskellScript.GTH -> prPrec i 0 (concatD [doc (showString ">")])
-    AbsHaskellScript.GE -> prPrec i 0 (concatD [doc (showString ">=")])
-    AbsHaskellScript.EQU -> prPrec i 0 (concatD [doc (showString "==")])
-    AbsHaskellScript.NE -> prPrec i 0 (concatD [doc (showString "!=")])
+    AbsHaskellScript.LTH _ -> prPrec i 0 (concatD [doc (showString "<")])
+    AbsHaskellScript.LE _ -> prPrec i 0 (concatD [doc (showString "<=")])
+    AbsHaskellScript.GTH _ -> prPrec i 0 (concatD [doc (showString ">")])
+    AbsHaskellScript.GE _ -> prPrec i 0 (concatD [doc (showString ">=")])
+    AbsHaskellScript.EQU _ -> prPrec i 0 (concatD [doc (showString "==")])
+    AbsHaskellScript.NE _ -> prPrec i 0 (concatD [doc (showString "!=")])
 

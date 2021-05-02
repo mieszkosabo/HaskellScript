@@ -13,14 +13,14 @@ import ParHaskellScript ( pProgram, myLexer )
 loadOverture :: IO ([Stmt] -> IO (Either RunTimeErrors ((Env, ReturnedValue), Store)))
 loadOverture = do
   input <- readFile "lib/Overture.hss"
-  let (Ok (Program stmts)) = pProgram (myLexer input)
+  let (Ok (Program _ stmts)) = pProgram (myLexer input)
   (Right ((env, _), store)) <- runHSI stmts
   return (runPreloadedHSI env store)
 
 
 loadOvertureTypes = do
   input <- readFile "lib/Overture.hss"
-  let (Ok (Program stmts)) = pProgram (myLexer input)
+  let (Ok (Program _ stmts)) = pProgram (myLexer input)
   (Right (env, _)) <- runTypeCheck stmts
   return (runPreloadedTypeCheck env)
 
@@ -29,7 +29,7 @@ parse :: String -> IO ()
 parse input =
   case pProgram (myLexer input) of
     (Ok parsedProg) -> do
-      let Program stmts = parsedProg
+      let Program _ stmts = parsedProg
       -- todo typechecking
       preloadedTypeCheck <- loadOvertureTypes
       typeCheckRes <- preloadedTypeCheck stmts
