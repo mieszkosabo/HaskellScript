@@ -54,8 +54,13 @@ assertArgCount types exprs = do
 declareVarType :: String -> Type -> TypeCheck TEnv
 declareVarType n t = do
   env <- ask
-  let env' = insert n t env
-  return env'
+  case Data.Map.lookup n env of
+    (Just v) -> do
+      liftIO $ print v
+      throwError $ ReassignError n
+    Nothing -> do
+    let env' = insert n t env
+    return env'
 
 addArgsTypesToEnv :: [String] -> [Type] -> TypeCheck TEnv
 addArgsTypesToEnv [] [] = ask

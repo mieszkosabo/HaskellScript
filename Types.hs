@@ -64,6 +64,7 @@ data TypeCheckErrors = UndefinedName String
                      | HeterogenousList
                      | FunctionApplicationError String
                      | AssertionError String
+                     | ReassignError String
   deriving Show
 
 type TEnv = Map VarName Type

@@ -89,8 +89,8 @@ const semE = \expr, state => {
 };
 
 semB :: BExp() -> [Pair(String, Int)] -> Bool
-const semB = \b, state => {
-  match b:
+const semB = \boolExpr, state => {
+  match boolExpr:
     case TrueBExp() {
       return true;
     }
