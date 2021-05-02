@@ -1,10 +1,8 @@
 module TypeCheck where
-import Data.Map(Map, empty, lookup, insert)
+import Data.Map(empty, insert)
 import Data.Maybe
-import Control.Monad
 import Control.Monad.Reader
 import Control.Monad.Except
-import Data.Maybe(isNothing)
 import AbsHaskellScript
 import Types
 import Substitutions(substitute)
@@ -25,8 +23,8 @@ determineTypesAfterApp types args = do
 -- exprs
 
 evalType :: Expr -> TypeCheck Type
-evalType (EVar _ (Ident name)) = askType name
-evalType (EConstr _ (Udent name)) = askType name
+evalType (EVar pos (Ident name)) = askType name pos
+evalType (EConstr pos (Udent name)) = askType name pos
 evalType (ELitInt pos _) = return $ Int pos
 evalType (EString pos _) = return $ Str pos
 evalType (ELitTrue pos) = return  $ Bool pos
@@ -109,13 +107,13 @@ typeCheckCase (Case pos (ListExpr _ []) (Block _ stmts)) _ = do
   (_, retType) <- typeCheckStmts stmts
   return $ fromMaybe (Void pos) retType
 typeCheckCase (Case pos (ListExpr _ [EVar _ (Ident x), Spread _ (EVar _ (Ident xs))]) (Block _ stmts)) (ListT _ t) = do
-  env' <- addArgsTypesToEnv [x, xs] [t, ListT pos t]
+  env' <- addArgsTypesToEnv [x, xs] [t, ListT pos t] pos
   (_, retType) <- local (const env') (typeCheckStmts stmts)
   return $ fromMaybe (Void pos) retType
 typeCheckCase (Case pos (EApp _ (EConstr _ (Udent name)) args) (Block _ stmts)) _ = do
-  (FunT _ types) <- askType name
+  (FunT _ types) <- askType name pos
   names <- argsToStrings args
-  env' <- addArgsTypesToEnv names types
+  env' <- addArgsTypesToEnv names types pos
   (_, retType) <- local (const env') (typeCheckStmts stmts)
   return $ fromMaybe (Void pos) retType
 
@@ -129,7 +127,7 @@ argsToStrings = mapM f
 typeCheck :: Stmt -> TypeCheck (TEnv, ReturnedType)
 
 typeCheck (Match pos (Ident ident) cases) = do
-  identType <- askType ident
+  identType <- askType ident pos
   env <- ask
   evaledCases <- mapM (`typeCheckCase` identType) cases
   assert (checkIfhomogeneousTypes evaledCases) pos "different return types of cases in match statement!"
@@ -141,9 +139,8 @@ typeCheck (Print _ exprs) = do
   return (env, Nothing)
 
 typeCheck (Decl pos (Ident name) e) = do
-  -- liftIO $ print $ "pos deklaracji " ++ show pos
   t <- evalType e
-  env' <- declareVarType name t
+  env' <- declareVarType name t pos
   return (env', Nothing)
 
 typeCheck (FunDecl pos (Ident name) argTypes (Ident name') lambda) = do
@@ -152,26 +149,26 @@ typeCheck (FunDecl pos (Ident name) argTypes (Ident name') lambda) = do
   case lambda of
     (ConciseLambda pos idents lexpr) -> do
       assert (length argTypes - 1 == length idents) pos $ "number of arguments don't match in signature and definition of" ++ name
-      env' <- addArgsTypesToEnv (map (\(Ident n) -> n) idents) argTypes
+      env' <- addArgsTypesToEnv (map (\(Ident n) -> n) idents) argTypes pos
       let env'' = insert name (FunT pos argTypes) env'
       retType <- local (const env'') (evalType lexpr)
       assertType retType (last argTypes) pos
       return (insert name (FunT pos argTypes) env, Nothing)
     (LongLambda pos idents (Block _ stmts)) -> do
       assert (length argTypes - 1 == length idents) pos $ "number of arguments don't match in signature and definition of" ++ name
-      env' <- addArgsTypesToEnv (map (\(Ident n) -> n) idents) argTypes
+      env' <- addArgsTypesToEnv (map (\(Ident n) -> n) idents) argTypes pos
       let env'' = insert name (FunT pos argTypes) env'
       (_, retType) <- local (const env'') (typeCheckStmts stmts)
       assertType (fromMaybe (Void pos) retType) (last argTypes) pos
       return (insert name (FunT pos argTypes) env, Nothing)
-    _ -> do -- FIXME: make it more safe
+    _ -> do
       t <- evalType lambda
       return (insert name t env, Nothing)
 
 
 typeCheck (DataDecl pos (Udent name) params constructors) = do
   let dt = DataType pos (Udent name) params
-  env <- addConstructorsToEnv constructors dt
+  env <- addConstructorsToEnv constructors dt pos
   return (env, Nothing)
 
 typeCheck (Cond pos e (Block _ stmts)) = do

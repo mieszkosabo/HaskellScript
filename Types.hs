@@ -55,22 +55,36 @@ type Store = Map Loc Value
 
 data RunTimeErrors = DivisionByZeroException BNFC'Position
                    | ModByZeroException BNFC'Position
-  deriving Show
 
-data TypeCheckErrors = UndefinedName String
+instance Show RunTimeErrors where
+  show (DivisionByZeroException pos) = "Division by zero" ++ addPositionInfo pos
+  show (ModByZeroException pos) = "Zero was used as a second argument to modulo" ++ addPositionInfo pos
+
+data TypeCheckErrors = UndefinedName BNFC'Position String
                      | TypeAssertFailed BNFC'Position String String
                      | ReturnTypeVary BNFC'Position String String
                      | SpreadAppliedNotToList BNFC'Position
                      | HeterogenousList BNFC'Position
                      | FunctionApplicationError BNFC'Position String
                      | AssertionError BNFC'Position String
-                     | ReassignError String
-  deriving Show
+                     | ReassignError BNFC'Position String
 
+addPositionInfo :: BNFC'Position -> String
+addPositionInfo (Just (line, col)) = " near line " ++ show line ++ ", column " ++ show col ++ "."
+addPositionInfo Nothing = "."
+instance Show TypeCheckErrors where
+  show (UndefinedName pos name) = "Undefined name: " ++ name ++ addPositionInfo pos
+  show (TypeAssertFailed pos t1 t2) = "Expected type: " ++ t2 ++ ", but got: " ++ t1 ++ addPositionInfo pos
+  show (ReturnTypeVary pos t1 t2) = "Unexpected return type. Expected: " ++ t1 ++ ", but got: " ++ t2 ++ addPositionInfo pos
+  show (SpreadAppliedNotToList pos) = "Spread operator was applied to a different type than a List" ++ addPositionInfo pos
+  show (HeterogenousList pos) = "Lists cannot be heterogenous" ++ addPositionInfo pos
+  show (FunctionApplicationError pos msg) = "Error in function application: " ++ msg ++ addPositionInfo pos
+  show (AssertionError pos msg) = msg ++ addPositionInfo pos
+  show (ReassignError pos name) = "Attempt to reassign a constant: " ++ name ++ addPositionInfo pos
 type TEnv = Map VarName Type
 type TypeCheck = ReaderT TEnv (ExceptT TypeCheckErrors IO)
 type ReturnedType = Maybe Type
 
-lambdaWildcard = "λ"
+lambdaWildcard = "_λ" -- reserved type name for lambdas without type signature
 -- HaskellScript Interpreter
 type HSI = ReaderT Env (StateT Store (ExceptT RunTimeErrors IO))

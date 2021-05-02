@@ -19,13 +19,13 @@ isEqType (ListT _ t) = isEqType t
 isEqType (WildcardT _ _) = True
 isEqType _ = False
 
-askType :: String -> TypeCheck Type
-askType name = do
+askType :: String -> BNFC'Position -> TypeCheck Type
+askType name pos = do
   env <- ask
   let maybeType = Data.Map.lookup name env
   case maybeType of
     Just t -> return t
-    Nothing -> throwError $ UndefinedName name
+    Nothing -> throwError $ UndefinedName pos name
 
 assertType :: Type -> Type -> BNFC'Position -> TypeCheck ()
 -- for now, polimorphic arguments could be dangerous
@@ -51,31 +51,31 @@ assertArgCount types exprs pos = do
        || ((length types - 1) < length exprs))
     $ throwError $ FunctionApplicationError pos $ "Argument count assertion failed! " ++ show (length types) ++ show (length exprs)
 
-declareVarType :: String -> Type -> TypeCheck TEnv
-declareVarType n t = do
+declareVarType :: String -> Type -> BNFC'Position -> TypeCheck TEnv
+declareVarType n t pos = do
   env <- ask
   case Data.Map.lookup n env of
-    (Just v) -> do
-      throwError $ ReassignError n
+    (Just _) -> do
+      throwError $ ReassignError pos n
     Nothing -> do
     let env' = insert n t env
     return env'
 
-addArgsTypesToEnv :: [String] -> [Type] -> TypeCheck TEnv
-addArgsTypesToEnv [] [] = ask
-addArgsTypesToEnv names types = do
+addArgsTypesToEnv :: [String] -> [Type] -> BNFC'Position -> TypeCheck TEnv
+addArgsTypesToEnv [] [] _ = ask
+addArgsTypesToEnv names types pos = do
   env <- ask
   foldM f env (zip names types)
   where
-    f = \env (name, typ) -> local (const env) $ declareVarType name typ
+    f = \env (name, typ) -> local (const env) $ declareVarType name typ pos
 
-addConstructorsToEnv :: [Constructor] -> Type -> TypeCheck TEnv
-addConstructorsToEnv [] _ = ask
-addConstructorsToEnv constructors dt = do
+addConstructorsToEnv :: [Constructor] -> Type -> BNFC'Position -> TypeCheck TEnv
+addConstructorsToEnv [] _ _ = ask
+addConstructorsToEnv constructors dt pos = do
   env <- ask
   foldM f env constructors
   where
-    f = \env (Constructor pos (Udent name) typeargs) -> local (const env) $ declareVarType name (FunT pos (typeArgsToTypes typeargs ++ [dt]))
+    f = \env (Constructor pos' (Udent name) typeargs) -> local (const env) $ declareVarType name (FunT pos' (typeArgsToTypes typeargs ++ [dt])) pos
 
 typeArgsToTypes :: [TypeArg] -> [Type]
 typeArgsToTypes = map (\(TypeArg _ t) -> t)

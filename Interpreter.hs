@@ -133,7 +133,7 @@ eval (EVar _ (Ident name)) = varToValue name
 eval (EString _ s) = return $ StringVal s
 
 eval (ELitInt _ n) = return $ IntVal n
-
+-- FIXME: assert for type since polymorphic types are evaled at runtime
 eval (Neg _ e) = do
   IntVal n <- eval e
   return $ IntVal $ -n

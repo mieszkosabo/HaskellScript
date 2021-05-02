@@ -22,7 +22,7 @@ substituteAll ts ts' = do
 inferSubs_ :: Type -> Type -> SubsMonad Type
 inferSubs_ (DataType pos (Udent name) ts) (DataType _ (Udent name') ts') = do
   if name /= name' then do
-    throwError $ FunctionApplicationError pos "DataType udents don't match"
+    throwError $ FunctionApplicationError pos "Algebraic types don'y match"
   else do
     nts <- zipWithM inferSubs_ (typeArgsToTypes ts) (typeArgsToTypes ts')
     return $ DataType Nothing (Udent name) $ typesToTypeArgs nts
@@ -45,7 +45,7 @@ inferSubs_ (WildcardT pos (Ident ident)) t = do
         return t
       Just t' -> if compareType t t' then
                   return t
-                else throwError $ FunctionApplicationError pos $ "sth with wildcards" ++ (show t) ++ " oraz" ++ (show t')
+                else throwError $ FunctionApplicationError pos $ "Polymorphic type " ++ ident ++ " was used as more than one type: " ++ (show t) ++ " and " ++ (show t')
 
 inferSubs_ t wildcard@(WildcardT _ (Ident ident)) = do
   if ident == lambdaWildcard then
