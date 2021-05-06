@@ -11,78 +11,92 @@ checkIfhomogeneousTypes [] = True
 checkIfhomogeneousTypes (x:xs) = all (compareType x) xs
 
 isEqType :: Type -> Bool
-isEqType Int = True
-isEqType Str = True
-isEqType Bool = True
-isEqType Void = True
-isEqType (ListT t) = isEqType t
-isEqType (WildcardT _) = True
+isEqType (Int _) = True
+isEqType (Str _) = True
+isEqType (Bool _) = True
+isEqType (Void _) = True
+isEqType (ListT _ t) = isEqType t
+isEqType (WildcardT _ _) = True
 isEqType _ = False
 
-askType :: String -> TypeCheck Type
-askType name = do
+askType :: String -> BNFC'Position -> TypeCheck Type
+askType name pos = do
   env <- ask
   let maybeType = Data.Map.lookup name env
   case maybeType of
     Just t -> return t
-    Nothing -> throwError $ UndefinedName name
+    Nothing -> throwError $ UndefinedName pos name
 
-assertType :: Type -> Type -> TypeCheck ()
+assertType :: Type -> Type -> BNFC'Position -> TypeCheck ()
 -- for now, polimorphic arguments could be dangerous
-assertType _ (WildcardT _) = return ()
-assertType t t' = do
+assertType _ (WildcardT _  _) _ = return ()
+assertType t t' pos = do
   if compareType t t' then
     return ()
-  else throwError $ TypeAssertFailed (show t) (show t')
+  else throwError $ TypeAssertFailed pos (show t) (show t')
 
-assert :: Bool -> String -> TypeCheck ()
-assert True _ = return ()
-assert False msg = throwError $ AssertionError msg 
+assert :: Bool -> BNFC'Position -> String -> TypeCheck ()
+assert True _ _ = return ()
+assert False pos msg = throwError $ AssertionError pos msg 
 
 continueTypeCheck :: TypeCheck (TEnv, ReturnedType)
 continueTypeCheck = do
   env <- ask
   return (env, Nothing)
 
-assertArgCount :: [Type] -> [Expr] -> TypeCheck ()
-assertArgCount types exprs = do
+assertArgCount :: [Type] -> [Expr] -> BNFC'Position -> TypeCheck ()
+assertArgCount types exprs pos = do
   when
     ((length types == 1 && not (null exprs))
        || ((length types - 1) < length exprs))
-    $ throwError $ FunctionApplicationError $ "Argument count assertion failed! " ++ show (length types) ++ show (length exprs)
+    $ throwError $ FunctionApplicationError pos $ "Argument count assertion failed! " ++ show (length types) ++ show (length exprs)
 
-declareVarType :: String -> Type -> TypeCheck TEnv
-declareVarType n t = do
+declareVarType :: String -> Type -> BNFC'Position -> TypeCheck TEnv
+declareVarType n t pos = do
   env <- ask
-  let env' = insert n t env
-  return env'
+  case Data.Map.lookup n env of
+    (Just _) -> do
+      throwError $ ReassignError pos n
+    Nothing -> do
+    let env' = insert n t env
+    return env'
 
-addArgsTypesToEnv :: [String] -> [Type] -> TypeCheck TEnv
-addArgsTypesToEnv [] [] = ask
-addArgsTypesToEnv names types = do
+addArgsTypesToEnv :: [String] -> [Type] -> BNFC'Position -> TypeCheck TEnv
+addArgsTypesToEnv [] [] _ = ask
+addArgsTypesToEnv names types pos = do
   env <- ask
   foldM f env (zip names types)
   where
-    f = \env (name, typ) -> local (const env) $ declareVarType name typ
+    f = \env (name, typ) -> local (const env) $ declareVarType name typ pos
 
-addConstructorsToEnv :: [Constructor] -> Type -> TypeCheck TEnv
-addConstructorsToEnv [] _ = ask
-addConstructorsToEnv constructors dt = do
+addConstructorsToEnv :: [Constructor] -> Type -> BNFC'Position -> TypeCheck TEnv
+addConstructorsToEnv [] _ _ = ask
+addConstructorsToEnv constructors dt pos = do
   env <- ask
   foldM f env constructors
   where
-    f = \env (Constructor (Udent name) typeargs) -> local (const env) $ declareVarType name (FunT $ typeArgsToTypes typeargs ++ [dt])
+    f = \env (Constructor pos' (Udent name) typeargs) -> local (const env) $ declareVarType name (FunT pos' (typeArgsToTypes typeargs ++ [dt])) pos
 
 typeArgsToTypes :: [TypeArg] -> [Type]
-typeArgsToTypes = map (\(TypeArg t) -> t)
+typeArgsToTypes = map (\(TypeArg _ t) -> t)
 
 typesToTypeArgs :: [Type] -> [TypeArg]
-typesToTypeArgs = map TypeArg
+typesToTypeArgs = map (TypeArg Nothing)
 
 compareType :: Type -> Type -> Bool
-compareType (WildcardT _) _ = True
-compareType _ (WildcardT _) = True
-compareType (ListT _) (ListT Void) = True
-compareType (ListT Void) (ListT _) = True
-compareType t t' = t == t'
+compareType (WildcardT _ ident) (WildcardT _ ident') = ident == ident'
+compareType (WildcardT _ _) _ = True
+compareType _ (WildcardT _ _) = True
+compareType (ListT _ _) (ListT _ (Void _)) = True
+compareType (ListT _ (Void _)) (ListT _ _) = True
+compareType (Int _) (Int _) = True
+compareType (Str _) (Str _) = True
+compareType (Bool _) (Bool _) = True
+compareType (Void _) (Void _) = True
+compareType (ListT _ t) (ListT _ t') = compareType t t'
+compareType (FunT _ ts) (FunT _ ts') = foldr (\(t1, t2) acc -> compareType t1 t2 && acc) True (zip ts ts')
+
+compareType (DataType _ udent ts) (DataType _ udent' ts') 
+  = udent == udent' && foldr (\(t1, t2) acc -> compareType t1 t2 && acc) True (zip (typeArgsToTypes ts) (typeArgsToTypes ts'))
+compareType _ _ = False
 

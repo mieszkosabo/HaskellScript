@@ -1,10 +1,8 @@
 module TypeCheck where
-import Data.Map(Map, empty, lookup, insert)
+import Data.Map(empty, insert)
 import Data.Maybe
-import Control.Monad
 import Control.Monad.Reader
 import Control.Monad.Except
-import Data.Maybe(isNothing)
 import AbsHaskellScript
 import Types
 import Substitutions(substitute)
@@ -19,173 +17,168 @@ determineTypesAfterApp types args = do
     Left err -> throwError err
     Right (types', _) -> 
       if length args < length types - 1 then
-        return $ FunT $ drop (length args) types'
+        return $ FunT Nothing $ drop (length args) types'
       else return $ last types'
 
 -- exprs
 
 evalType :: Expr -> TypeCheck Type
-evalType (EVar (Ident name)) = askType name
-evalType (EConstr (Udent name)) = askType name
-evalType (ELitInt _) = return Int
-evalType (EString _) = return Str
-evalType ELitTrue = return Bool
-evalType ELitFalse = return Bool
-evalType (Ternary e1 e2 e3) = do
+evalType (EVar pos (Ident name)) = askType name pos
+evalType (EConstr pos (Udent name)) = askType name pos
+evalType (ELitInt pos _) = return $ Int pos
+evalType (EString pos _) = return $ Str pos
+evalType (ELitTrue pos) = return  $ Bool pos
+evalType (ELitFalse pos) = return $ Bool pos
+evalType (Ternary pos e1 e2 e3) = do
   t1 <- evalType e1
-  assertType Bool t1
+  assertType (Bool Nothing) t1 pos
   t2 <- evalType e2
   t3 <- evalType e3
-  if t2 == t3 then
+  if compareType t2 t3 then
     return t2
-  else throwError $ ReturnTypeVary (show t2) (show t3)
+  else throwError $ ReturnTypeVary pos (show t2) (show t3)
 
 -- FIXME: jakieś sprawdzanie by się przydało w sumie, ale jeszce nie wiem jak duże
-evalType (ConciseLambda idents _) =
-  return $ FunT $ replicate (length idents + 1) (WildcardT $ Ident lambdaWildcard)
+evalType (ConciseLambda pos idents _) =
+  return $ FunT pos $ replicate (length idents + 1) (WildcardT pos $ Ident lambdaWildcard)
 
-evalType (LongLambda idents _) = 
-  return $ FunT $ replicate (length idents + 1) (WildcardT $ Ident lambdaWildcard)
+evalType (LongLambda pos idents _) = 
+  return $ FunT pos $ replicate (length idents + 1) (WildcardT pos $ Ident lambdaWildcard)
 
 -- TODO: jak wymusić używanie spreada tylko wewnątrz list?
-evalType (Spread e) = do
+evalType (Spread pos e) = do
   t <- evalType e
   case t of
-    ListT elType -> return elType
-    _ -> throwError SpreadAppliedNotToList
+    ListT _ elType -> return elType
+    _ -> throwError $ SpreadAppliedNotToList pos
 
-evalType (ListExpr exprs) = do
+evalType (ListExpr pos exprs) = do
   ts <- mapM evalType exprs
-  if checkIfhomogeneousTypes (filter (/= Void) ts) then
-    return $ ListT (if null ts then Void else head ts)
-  else throwError HeterogenousList
+  if checkIfhomogeneousTypes (filter (/= Void Nothing) ts) then
+    return $ ListT pos (if null ts then Void pos else head ts)
+  else throwError $ HeterogenousList pos
 
-evalType (EApp e args) = do
-  (FunT argTypes) <- evalType e
-  assertArgCount argTypes args
+evalType (EApp pos e args) = do
+  (FunT _ argTypes) <- evalType e
+  assertArgCount argTypes args pos
   determineTypesAfterApp argTypes args
 
-evalType (Neg e) = do
+evalType (Neg pos e) = do
   t <- evalType e
-  assertType Int t
-  return Int
-evalType (Not e) = do
+  assertType (Int Nothing) t pos
+  return $ Int pos
+evalType (Not pos e) = do
   t <- evalType e
-  assertType Bool t
-  return Bool
-evalType (EMul e _ e') = do
+  assertType (Bool Nothing) t pos
+  return $ Bool pos
+evalType (EMul pos e _ e') = do
   ts <- mapM evalType [e, e']
-  mapM_ (assertType Int) ts
-  return Int
-evalType (EAdd e _ e') = do
+  mapM_ (\t -> assertType (Int Nothing) t pos) ts
+  return $ Int pos
+evalType (EAdd pos e _ e') = do
   ts <- mapM evalType [e, e']
-  mapM_ (assertType Int) ts
-  return Int
-evalType (EAnd e e') = do
+  mapM_ (\t -> assertType (Int Nothing) t pos) ts
+  return $ Int pos
+evalType (EAnd pos e e') = do
   ts <- mapM evalType [e, e']
-  mapM_ (assertType Bool) ts
-  return Bool
-evalType (EOr e e') = do
+  mapM_ (\t -> assertType (Bool Nothing) t pos) ts
+  return $ Bool pos
+evalType (EOr pos e e') = do
   ts <- mapM evalType [e, e']
-  mapM_ (assertType Bool) ts
-  return Bool
+  mapM_ (\t -> assertType (Bool Nothing) t pos) ts
+  return $ Bool pos
 
 -- TODO: eq for data types
-evalType (ERel e op e') = do
+evalType (ERel pos e op e') = do
   t1 <- evalType e
   t2 <- evalType e'
   case op of
-    EQU -> do
+    EQU _ -> do
       if isEqType t1 && isEqType t2 && compareType t1 t2 then
-        return Bool
-      else throwError $ TypeAssertFailed (show t1) (show t2)
+        return $ Bool pos
+      else throwError $ TypeAssertFailed pos (show t1) (show t2)
     _ -> do
       ts <- mapM evalType [e, e']
-      mapM_ (assertType Int) ts
-      return Bool
-
--- evalType e = do
---   liftIO $ print e
---   return Void
--- stmts
+      mapM_ (\t -> assertType (Int Nothing) t pos) ts
+      return $ Bool pos
 
 typeCheckCase :: Case -> Type -> TypeCheck Type
-typeCheckCase (Case (ListExpr []) (Block stmts)) _ = do
+typeCheckCase (Case pos (ListExpr _ []) (Block _ stmts)) _ = do
   (_, retType) <- typeCheckStmts stmts
-  return $ fromMaybe Void retType
-typeCheckCase (Case (ListExpr [EVar (Ident x), Spread (EVar (Ident xs))]) (Block stmts)) (ListT t) = do
-  env' <- addArgsTypesToEnv [x, xs] [t, ListT t]
+  return $ fromMaybe (Void pos) retType
+typeCheckCase (Case pos (ListExpr _ [EVar _ (Ident x), Spread _ (EVar _ (Ident xs))]) (Block _ stmts)) (ListT _ t) = do
+  env' <- addArgsTypesToEnv [x, xs] [t, ListT pos t] pos
   (_, retType) <- local (const env') (typeCheckStmts stmts)
-  return $ fromMaybe Void retType
-typeCheckCase (Case (EApp (EConstr (Udent name)) args) (Block stmts)) _ = do
-  (FunT types) <- askType name
+  return $ fromMaybe (Void pos) retType
+typeCheckCase (Case pos (EApp _ (EConstr _ (Udent name)) args) (Block _ stmts)) _ = do
+  (FunT _ types) <- askType name pos
   names <- argsToStrings args
-  env' <- addArgsTypesToEnv names types
+  env' <- addArgsTypesToEnv names types pos
   (_, retType) <- local (const env') (typeCheckStmts stmts)
-  return $ fromMaybe Void retType
+  return $ fromMaybe (Void pos) retType
 
 argsToStrings :: [Expr] -> TypeCheck [String]
 argsToStrings = mapM f
     where 
       f :: Expr -> TypeCheck String
-      f (EVar (Ident n)) = return n
-      f _ = throwError $ FunctionApplicationError "Error in Case"
+      f (EVar _ (Ident n)) = return n
+      f _ = throwError $ FunctionApplicationError Nothing "Error in Case"
 
 typeCheck :: Stmt -> TypeCheck (TEnv, ReturnedType)
 
-typeCheck (Match (Ident ident) cases) = do
-  identType <- askType ident
+typeCheck (Match pos (Ident ident) cases) = do
+  identType <- askType ident pos
   env <- ask
   evaledCases <- mapM (`typeCheckCase` identType) cases
-  assert (checkIfhomogeneousTypes evaledCases) "different return types of cases in match statement!"
+  assert (checkIfhomogeneousTypes evaledCases) pos "different return types of cases in match statement!"
   return (env, Just $ head evaledCases)
 
-typeCheck (Print exprs) = do
+typeCheck (Print _ exprs) = do
   mapM_ evalType exprs
   env <- ask
   return (env, Nothing)
 
-typeCheck (Decl (Ident name) e) = do
+typeCheck (Decl pos (Ident name) e) = do
   t <- evalType e
-  env' <- declareVarType name t
+  env' <- declareVarType name t pos
   return (env', Nothing)
 
-typeCheck (FunDecl (Ident name) argTypes (Ident name') lambda) = do
-  assert (name == name') $ "Declaration names don't match for: " ++ name ++ " and " ++ name'
+typeCheck (FunDecl pos (Ident name) argTypes (Ident name') lambda) = do
+  assert (name == name') pos $ "Declaration names don't match for: " ++ name ++ " and " ++ name'
   env <- ask
   case lambda of
-    (ConciseLambda idents lexpr) -> do
-      assert (length argTypes - 1 == length idents) $ "number of arguments don't match in signature and definition of" ++ name
-      env' <- addArgsTypesToEnv (map (\(Ident n) -> n) idents) argTypes
-      let env'' = insert name (FunT argTypes) env'
+    (ConciseLambda pos idents lexpr) -> do
+      assert (length argTypes - 1 == length idents) pos $ "number of arguments don't match in signature and definition of" ++ name
+      env' <- addArgsTypesToEnv (map (\(Ident n) -> n) idents) argTypes pos
+      let env'' = insert name (FunT pos argTypes) env'
       retType <- local (const env'') (evalType lexpr)
-      assertType retType (last argTypes)
-      return (insert name (FunT argTypes) env, Nothing)
-    (LongLambda idents (Block stmts)) -> do
-      assert (length argTypes - 1 == length idents) $ "number of arguments don't match in signature and definition of" ++ name
-      env' <- addArgsTypesToEnv (map (\(Ident n) -> n) idents) argTypes
-      let env'' = insert name (FunT argTypes) env'
+      assertType retType (last argTypes) pos
+      return (insert name (FunT pos argTypes) env, Nothing)
+    (LongLambda pos idents (Block _ stmts)) -> do
+      assert (length argTypes - 1 == length idents) pos $ "number of arguments don't match in signature and definition of" ++ name
+      env' <- addArgsTypesToEnv (map (\(Ident n) -> n) idents) argTypes pos
+      let env'' = insert name (FunT pos argTypes) env'
       (_, retType) <- local (const env'') (typeCheckStmts stmts)
-      assertType (fromMaybe Void retType) (last argTypes)
-      return (insert name (FunT argTypes) env, Nothing)
-    _ -> do -- FIXME: make it more safe
+      assertType (fromMaybe (Void pos) retType) (last argTypes) pos
+      return (insert name (FunT pos argTypes) env, Nothing)
+    _ -> do
       t <- evalType lambda
       return (insert name t env, Nothing)
 
 
-typeCheck (DataDecl (Udent name) params constructors) = do
-  let dt = DataType (Udent name) params
-  env <- addConstructorsToEnv constructors dt
+typeCheck (DataDecl pos (Udent name) params constructors) = do
+  let dt = DataType pos (Udent name) params
+  env <- addConstructorsToEnv constructors dt pos
   return (env, Nothing)
 
-typeCheck (Cond e (Block stmts)) = do
+typeCheck (Cond pos e (Block _ stmts)) = do
   t <- evalType e
-  assertType t Bool
+  assertType t (Bool Nothing) pos
   typeCheckStmts stmts
 
-typeCheck (CondElse e (Block stmts) (Block stmts')) = do
+typeCheck (CondElse pos e (Block _ stmts) (Block _ stmts')) = do
   t <- evalType e
-  assertType t Bool
+  assertType t (Bool Nothing) pos
   (_, ret) <- typeCheckStmts stmts
   (_, ret') <- typeCheckStmts stmts'
   case (ret, ret') of
@@ -195,19 +188,19 @@ typeCheck (CondElse e (Block stmts) (Block stmts')) = do
        (do currEnv <- ask
            return (currEnv, ret))
       else
-        throwError $ ReturnTypeVary (show t1) (show t2))
-    (_, _) -> throwError $ ReturnTypeVary (show ret) (show ret') 
+        throwError $ ReturnTypeVary pos (show t1) (show t2))
+    (_, _) -> throwError $ ReturnTypeVary pos (show ret) (show ret') 
 
-typeCheck (Ret e) = do
+typeCheck (Ret _ e) = do
   t <- evalType e
   env <- ask
   return (env, Just t)
 
-typeCheck VoidRet = do
+typeCheck (VoidRet pos) = do
   env <- ask
-  return (env, Just Void)
+  return (env, Just (Void pos))
 
-typeCheck (SExp e) = do
+typeCheck (SExp _ e) = do
   evalType e
   env <- ask
   return (env, Nothing)

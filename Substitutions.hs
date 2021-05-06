@@ -20,21 +20,21 @@ substituteAll ts ts' = do
   mapM substitute_ ts
 
 inferSubs_ :: Type -> Type -> SubsMonad Type
-inferSubs_ (DataType (Udent name) ts) (DataType (Udent name') ts') = do
+inferSubs_ (DataType pos (Udent name) ts) (DataType _ (Udent name') ts') = do
   if name /= name' then do
-    throwError $ FunctionApplicationError "DataType udents don't match"
+    throwError $ FunctionApplicationError pos "Algebraic types don'y match"
   else do
     nts <- zipWithM inferSubs_ (typeArgsToTypes ts) (typeArgsToTypes ts')
-    return $ DataType (Udent name) $ typesToTypeArgs nts
-inferSubs_ (ListT t) (ListT Void) = return t
-inferSubs_ (ListT Void) (ListT t) = return t
-inferSubs_ (ListT t) (ListT t') = do
+    return $ DataType Nothing (Udent name) $ typesToTypeArgs nts
+inferSubs_ (ListT _ t) (ListT _ (Void _)) = return t
+inferSubs_ (ListT _ (Void _)) (ListT _ t) = return t
+inferSubs_ (ListT _ t) (ListT _ t') = do
   nt <- inferSubs_ t t'
-  return $ ListT nt
-inferSubs_ (FunT ts) (FunT ts') = do
+  return $ ListT Nothing nt
+inferSubs_ (FunT _ ts) (FunT _ ts') = do
   ts'' <- zipWithM inferSubs_ ts ts'
-  return $ FunT ts''
-inferSubs_ (WildcardT (Ident ident)) t = do
+  return $ FunT Nothing ts''
+inferSubs_ (WildcardT pos (Ident ident)) t = do
   if ident == lambdaWildcard then
     return t
   else do
@@ -45,32 +45,32 @@ inferSubs_ (WildcardT (Ident ident)) t = do
         return t
       Just t' -> if compareType t t' then
                   return t
-                else throwError $ FunctionApplicationError $ "sth with wildcards" ++ (show t) ++ " oraz" ++ (show t')
+                else throwError $ FunctionApplicationError pos $ "Polymorphic type " ++ ident ++ " was used as more than one type: " ++ (show t) ++ " and " ++ (show t')
 
-inferSubs_ t wildcard@(WildcardT (Ident ident)) = do
+inferSubs_ t wildcard@(WildcardT _ (Ident ident)) = do
   if ident == lambdaWildcard then
     return t
   else inferSubs_ t wildcard
 -- Int, Str, Bool case
-inferSubs_ t t' = if t == t' then
+inferSubs_ t t' = if compareType t t' then
                       return t
                     else do
                       liftIO $ print t >> print t'
-                      throwError $ FunctionApplicationError "int str bool case"
+                      throwError $ FunctionApplicationError Nothing "int str bool case"
 
 substitute_ :: Type -> SubsMonad Type
-substitute_ (DataType udent ts) = do
+substitute_ (DataType pos udent ts) = do
   ts' <- mapM substitute_ $ typeArgsToTypes ts
-  return $ DataType udent $ typesToTypeArgs ts'
-substitute_ (ListT t) = do
+  return $ DataType pos udent $ typesToTypeArgs ts'
+substitute_ (ListT pos t) = do
   t' <- substitute_ t
-  return $ ListT t'
-substitute_ (FunT ts) = do
+  return $ ListT pos t'
+substitute_ (FunT pos ts) = do
   ts' <- mapM substitute_ ts
-  return $ FunT ts'
-substitute_ (WildcardT (Ident ident)) = do
+  return $ FunT pos ts'
+substitute_ (WildcardT pos (Ident ident)) = do
   subs <- get
   case Data.Map.lookup ident subs of
-    Nothing -> return (WildcardT (Ident ident))
+    Nothing -> return (WildcardT pos (Ident ident))
     Just t' -> return t'
 substitute_ t = return t

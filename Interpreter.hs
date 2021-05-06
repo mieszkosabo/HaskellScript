@@ -21,7 +21,6 @@ newloc store =
 varToLoc :: String -> HSI Loc
 varToLoc name = do
   env <- ask
-  --liftIO $ print name
   let Just loc = Data.Map.lookup name env
   return loc
 
@@ -52,24 +51,24 @@ varToValue name = do
 -- Expressions
 
 evalAddOp :: AddOp -> Integer -> Integer -> Integer
-evalAddOp Plus = (+)
-evalAddOp Minus = (-)
+evalAddOp (Plus _)  = (+)
+evalAddOp (Minus _) = (-)
 
 evalMulOp :: MulOp -> Integer -> Integer -> Integer
-evalMulOp Div = div
-evalMulOp Mod = mod
-evalMulOp Times = (*)
+evalMulOp (Div _) = div
+evalMulOp (Mod _) = mod
+evalMulOp (Times _) = (*)
 
 evalRelOp :: RelOp -> Integer -> Integer -> Bool
-evalRelOp LTH = (<)
-evalRelOp LE = (<=)
-evalRelOp GTH = (>)
-evalRelOp GE = (<=)
-evalRelOp EQU = (==)
-evalRelOp NE = (/=)
+evalRelOp (LTH _) = (<)
+evalRelOp (LE _)  = (<=)
+evalRelOp (GTH _) = (>)
+evalRelOp (GE _)  = (<=)
+evalRelOp (EQU _) = (==)
+evalRelOp (NE _)  = (/=)
 
 checkEq :: Value -> Value -> Bool
-checkEq (IntVal n) (IntVal n') = evalRelOp EQU n n'
+checkEq (IntVal n) (IntVal n') = evalRelOp (EQU Nothing) n n'
 checkEq (StringVal s) (StringVal s') = s == s'
 checkEq (BoolVal b) (BoolVal b') = b == b'
 checkEq _ _ = False
@@ -83,17 +82,17 @@ addArgsToEnv names values = do
 
 eval :: Expr -> HSI Value
 
-eval (ConciseLambda args e) = do
+eval (ConciseLambda pos args e) = do
   env <- ask
-  return $ FuncVal ([Ret e], args, env)
+  return $ FuncVal ([Ret pos e], args, env)
 
-eval (LongLambda args (Block stmts)) = do
+eval (LongLambda _ args (Block _ stmts)) = do
   env <- ask
   return $ FuncVal (stmts, args, env) 
 
-eval (EConstr (Udent s)) = varToValue s
+eval (EConstr _ (Udent s)) = varToValue s
 
-eval (EApp e args) = do
+eval (EApp pos e args) = do
   callabeValue <- eval e
   case callabeValue of
     FuncVal (stmts, idents, env) -> do
@@ -110,15 +109,16 @@ eval (EApp e args) = do
                 Nothing -> return VoidVal
                 Just val -> return val))
     
-    (ConstrVal udent types) -> do
+    (ConstrVal udent _) -> do
       values <- mapM eval args
-      -- TODO: errors
       return $ DataVal (udent, values)
 
-eval (ListExpr expressions) =
+    _ -> throwError $ InvalidTypeException pos 
+
+eval (ListExpr _ expressions) =
   foldM f (DataVal (Udent "EmptyList_", [])) (reverse expressions)
   where
-    f vals (Spread e) = do
+    f vals (Spread _ e) = do
       r <- eval e
       let values = g r
       return $ foldr (\val acc -> DataVal (Udent "L_", [val, acc])) vals values
@@ -129,63 +129,95 @@ eval (ListExpr expressions) =
       value <- eval e
       return $ DataVal (Udent "L_", [value, vals])
 
-eval (EVar (Ident name)) = varToValue name
-eval (EString s) = return $ StringVal s
+eval (EVar _ (Ident name)) = varToValue name
+eval (EString _ s) = return $ StringVal s
 
-eval (ELitInt n) = return $ IntVal n
+eval (ELitInt _ n) = return $ IntVal n
+-- If user declares a polymorphic function with some class (e.g. integer) specific operations in it, then
+-- a runtime exception is possible as types aren't infered from the function body.
+eval (Neg pos e) = do
+  evaled <- eval e
+  case evaled of 
+    IntVal n -> return $ IntVal $ -n
+    _ -> throwError $ InvalidTypeException pos
+  
 
-eval (Neg e) = do
-  IntVal n <- eval e
-  return $ IntVal $ -n
+eval (EAdd pos e op e') = do
+  evaled <- eval e
+  evaled' <- eval e'
+  case evaled of 
+    IntVal n -> case evaled' of
+      IntVal n' -> return $ IntVal $ evalAddOp op n n'
+      _ -> throwError $ InvalidTypeException pos
+    _ -> throwError $ InvalidTypeException pos
+  
 
-eval (EAdd e op e') = do
-  IntVal n <- eval e
-  IntVal n' <- eval e'
-  return $ IntVal $ evalAddOp op n n'
+eval (EMul pos e op e') = do
+  evaled <- eval e
+  evaled' <- eval e'
+  case evaled of 
+    IntVal n -> case evaled' of
+      IntVal n' -> case op of
+        (Div pos) -> if n' == 0 then throwError $ DivisionByZeroException pos else return $ IntVal $ evalMulOp op n n'
+        (Mod pos) -> if n' == 0 then throwError $ ModByZeroException pos else return $ IntVal $ evalMulOp op n n'
+        _ -> return $ IntVal $ evalMulOp op n n'
+      _ -> throwError $ InvalidTypeException pos
+    _ -> throwError $ InvalidTypeException pos
+  
 
-eval (EMul e op e') = do
-  IntVal n <- eval e
-  IntVal n' <- eval e'
+eval (ELitTrue _) = return $ BoolVal True
+
+eval (ELitFalse _) = return $ BoolVal False
+
+eval (Not pos e) = do
+  evaled <- eval e
+  case evaled of 
+    BoolVal b -> return $ BoolVal $ not b
+    _ -> throwError $ InvalidTypeException pos
+  
+
+eval (EAnd pos e e') = do
+  evaled <- eval e
+  evaled' <- eval e'
+  case evaled of 
+    BoolVal b -> case evaled' of
+      BoolVal b' -> return $ BoolVal $ b && b'
+      _ -> throwError $ InvalidTypeException pos
+    _ -> throwError $ InvalidTypeException pos
+
+eval (EOr pos e e') = do
+  evaled <- eval e
+  evaled' <- eval e'
+  case evaled of 
+    BoolVal b -> case evaled' of
+      BoolVal b' -> return $ BoolVal $ b || b'
+      _ -> throwError $ InvalidTypeException pos
+    _ -> throwError $ InvalidTypeException pos
+
+eval (ERel pos e op e') =
   case op of
-    Div -> if n' == 0 then throwError DivisionByZeroException else return $ IntVal $ evalMulOp op n n'
-    Mod -> if n' == 0 then throwError ModByZeroException else return $ IntVal $ evalMulOp op n n'
-    _ -> return $ IntVal $ evalMulOp op n n'
-
-eval ELitTrue = return $ BoolVal True
-
-eval ELitFalse = return $ BoolVal False
-
-eval (Not e) = do
-  BoolVal b <- eval e
-  return $ BoolVal $ not b
-
-eval (EAnd e e') = do
-  BoolVal b  <- eval e
-  BoolVal b' <- eval e'
-  return $ BoolVal $ b && b'
-
-eval (EOr e e') = do
-  BoolVal b  <- eval e
-  BoolVal b' <- eval e'
-  return $ BoolVal $ b || b'
-
-eval (ERel e op e') =
-  case op of
-    EQU -> do 
+    (EQU _) -> do 
       v <- eval e
       v' <- eval e'
       return $ BoolVal $ checkEq v v'
     _ -> do
-    IntVal n <- eval e
-    IntVal n' <- eval e'
-    return $ BoolVal $ evalRelOp op n n'
+    evaled <- eval e
+    evaled' <- eval e'
+    case evaled of 
+      IntVal n -> case evaled' of
+        IntVal n' -> return $ BoolVal $ evalRelOp op n n'
+        _ -> throwError $ InvalidTypeException pos
+      _ -> throwError $ InvalidTypeException pos
 
-eval (Ternary e e' e'') = do
-  BoolVal b <- eval e
-  if b then do
-    eval e'
-  else do
-    eval e''
+eval (Ternary pos e e' e'') = do
+  evaled <- eval e
+  case evaled of 
+    BoolVal b -> 
+      if b then do
+        eval e'
+      else do
+        eval e''
+    _ -> throwError $ InvalidTypeException pos
 
 runEval exp = runExceptT $ runStateT (runReaderT (eval exp) empty) empty
 
@@ -197,58 +229,64 @@ continueExec = do
 
 execStmt :: Stmt -> HSI (Env, ReturnedValue)
 
-execStmt (Decl (Ident name) e) = do
+execStmt (Decl _ (Ident name) e) = do
   value <- eval e
   env' <- declareVar name value
   return (env', Nothing)
 
-execStmt (FunDecl _ _ (Ident name) e) = do
+execStmt (FunDecl _ _ _ (Ident name) e) = do
   value <- eval e
   env' <- declareVar name value
   return (env', Nothing)
 
-execStmt (DataDecl udent params constructors) = do
-  let constrValues = map (\(Constructor udent types) -> ConstrVal udent types) constructors
-  let udents = map (\(Constructor udent types) -> udent) constructors
+execStmt (DataDecl _ udent params constructors) = do
+  let constrValues = map (\(Constructor _ udent types) -> ConstrVal udent types) constructors
+  let udents = map (\(Constructor _ udent types) -> udent) constructors
   env <- ask
   let names = map (\(Udent name) -> name) udents
   env' <- local (const env) (addArgsToEnv names constrValues)
   return (env', Nothing)
 
-execStmt (SExp e) = do
+execStmt (SExp _ e) = do
   eval e -- potential side effects here, that's why needs to be evaluated
   continueExec
 
-execStmt (Cond e (Block stmts)) = do
-  BoolVal b <- eval e
-  if b then
-    execStmts stmts
-  else
-    continueExec
+execStmt (Cond pos e (Block _ stmts)) = do
+  evaled <- eval e
+  case evaled of 
+    BoolVal b ->
+      if b then
+        execStmts stmts
+      else
+        continueExec
+    _ -> throwError $ InvalidTypeException pos 
 
-execStmt (CondElse e (Block stmts) (Block stmts')) = do
-  BoolVal b <- eval e
-  if b then
-    execStmts stmts
-  else
-    execStmts stmts'
+execStmt (CondElse pos e (Block _ stmts) (Block _ stmts')) = do
+  evaled <- eval e
+  case evaled of
+    BoolVal b ->
+      if b then
+        execStmts stmts
+      else
+        execStmts stmts'
+    _ -> throwError $ InvalidTypeException pos
 
-execStmt (Ret e) = do
+execStmt (Ret _ e) = do
   value <- eval e
   env <- ask
   return (env, Just value)
 
-execStmt VoidRet = do
+execStmt (VoidRet _) = do
   env <- ask
   return (env, Just VoidVal)
 
-execStmt (Print expressions) = do
+execStmt (Print _ expressions) = do
   res <- mapM eval expressions
   liftIO $ mapM_ (putStr . (++ " ") . show) res
   liftIO $ putStrLn ""
   continueExec
 
-execStmt (Match (Ident name) cases) = do
+execStmt (Match _ (Ident name) cases) = do
   value <- varToValue name
   let maybeMatchingCase = find (doesCaseMatch value) cases
   case maybeMatchingCase of
@@ -257,32 +295,30 @@ execStmt (Match (Ident name) cases) = do
 
 
 runCase :: Case -> Value -> HSI (Env, ReturnedValue) 
-runCase (Case (ListExpr []) (Block stmts)) _ = do
+runCase (Case _ (ListExpr _ []) (Block _ stmts)) _ = do
   execStmts stmts
-runCase (Case (ListExpr [EVar (Ident x), Spread (EVar (Ident xs))]) (Block stmts)) (DataVal (_, [x', xs'])) = do
+runCase (Case _ (ListExpr _ [EVar _ (Ident x), Spread _ (EVar _ (Ident xs))]) (Block _ stmts)) (DataVal (_, [x', xs'])) = do
   env <- ask
   env' <- local (const env) $ declareVar x x'
   env' <- local (const env') $ declareVar xs xs' 
   (_, ret) <- local (const env') $ execStmts stmts
   return (env, ret)
 
-runCase (Case (EApp _ exprs) (Block stmts)) (DataVal (_, vals)) = do
+runCase (Case _ (EApp _ _ exprs) (Block _ stmts)) (DataVal (_, vals)) = do
   env <- ask
-  let names = map (\(EVar (Ident name)) -> name) exprs
+  let names = map (\(EVar _ (Ident name)) -> name) exprs
   env' <- local (const env) $ addArgsToEnv names vals
   (_, ret) <- local (const env') $ execStmts stmts
   return (env, ret)
 
 doesCaseMatch :: Value -> Case -> Bool
 -- syntax sugar for lists
-doesCaseMatch  (DataVal (Udent "EmptyList_", _)) (Case (ListExpr []) _) = True
-doesCaseMatch  (DataVal (Udent "L_", _)) (Case (ListExpr [EVar _, Spread _]) _) = True
+doesCaseMatch  (DataVal (Udent "EmptyList_", _)) (Case _ (ListExpr _ []) _) = True
+doesCaseMatch  (DataVal (Udent "L_", _)) (Case _ (ListExpr _ [EVar _ _, Spread _ _]) _) = True
 
-doesCaseMatch (DataVal (udent, vals)) (Case (EApp (EConstr udent') exprs) _) =
+doesCaseMatch (DataVal (udent, vals)) (Case _ (EApp _ (EConstr _ udent') exprs) _) =
   udent == udent' && length vals == length exprs
 doesCaseMatch _ _ = False
-
-
 
 execStmts :: [Stmt] -> HSI (Env, ReturnedValue)
 execStmts [] = continueExec
