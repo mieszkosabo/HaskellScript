@@ -21,7 +21,6 @@ newloc store =
 varToLoc :: String -> HSI Loc
 varToLoc name = do
   env <- ask
-  --liftIO $ print name
   let Just loc = Data.Map.lookup name env
   return loc
 
@@ -93,7 +92,7 @@ eval (LongLambda _ args (Block _ stmts)) = do
 
 eval (EConstr _ (Udent s)) = varToValue s
 
-eval (EApp _ e args) = do
+eval (EApp pos e args) = do
   callabeValue <- eval e
   case callabeValue of
     FuncVal (stmts, idents, env) -> do
@@ -110,10 +109,11 @@ eval (EApp _ e args) = do
                 Nothing -> return VoidVal
                 Just val -> return val))
     
-    (ConstrVal udent types) -> do
+    (ConstrVal udent _) -> do
       values <- mapM eval args
-      -- TODO: errors
       return $ DataVal (udent, values)
+
+    _ -> throwError $ InvalidTypeException pos 
 
 eval (ListExpr _ expressions) =
   foldM f (DataVal (Udent "EmptyList_", [])) (reverse expressions)
@@ -133,59 +133,91 @@ eval (EVar _ (Ident name)) = varToValue name
 eval (EString _ s) = return $ StringVal s
 
 eval (ELitInt _ n) = return $ IntVal n
--- FIXME: assert for type since polymorphic types are evaled at runtime
-eval (Neg _ e) = do
-  IntVal n <- eval e
-  return $ IntVal $ -n
+-- If user declares a polymorphic function with some class (e.g. integer) specific operations in it, then
+-- a runtime exception is possible as types aren't infered from the function body.
+eval (Neg pos e) = do
+  evaled <- eval e
+  case evaled of 
+    IntVal n -> return $ IntVal $ -n
+    _ -> throwError $ InvalidTypeException pos
+  
 
-eval (EAdd _ e op e') = do
-  IntVal n <- eval e
-  IntVal n' <- eval e'
-  return $ IntVal $ evalAddOp op n n'
+eval (EAdd pos e op e') = do
+  evaled <- eval e
+  evaled' <- eval e'
+  case evaled of 
+    IntVal n -> case evaled' of
+      IntVal n' -> return $ IntVal $ evalAddOp op n n'
+      _ -> throwError $ InvalidTypeException pos
+    _ -> throwError $ InvalidTypeException pos
+  
 
-eval (EMul _ e op e') = do
-  IntVal n <- eval e
-  IntVal n' <- eval e'
-  case op of
-    (Div pos) -> if n' == 0 then throwError $ DivisionByZeroException pos else return $ IntVal $ evalMulOp op n n'
-    (Mod pos) -> if n' == 0 then throwError $ ModByZeroException pos else return $ IntVal $ evalMulOp op n n'
-    _ -> return $ IntVal $ evalMulOp op n n'
+eval (EMul pos e op e') = do
+  evaled <- eval e
+  evaled' <- eval e'
+  case evaled of 
+    IntVal n -> case evaled' of
+      IntVal n' -> case op of
+        (Div pos) -> if n' == 0 then throwError $ DivisionByZeroException pos else return $ IntVal $ evalMulOp op n n'
+        (Mod pos) -> if n' == 0 then throwError $ ModByZeroException pos else return $ IntVal $ evalMulOp op n n'
+        _ -> return $ IntVal $ evalMulOp op n n'
+      _ -> throwError $ InvalidTypeException pos
+    _ -> throwError $ InvalidTypeException pos
+  
 
 eval (ELitTrue _) = return $ BoolVal True
 
 eval (ELitFalse _) = return $ BoolVal False
 
-eval (Not _ e) = do
-  BoolVal b <- eval e
-  return $ BoolVal $ not b
+eval (Not pos e) = do
+  evaled <- eval e
+  case evaled of 
+    BoolVal b -> return $ BoolVal $ not b
+    _ -> throwError $ InvalidTypeException pos
+  
 
-eval (EAnd _ e e') = do
-  BoolVal b  <- eval e
-  BoolVal b' <- eval e'
-  return $ BoolVal $ b && b'
+eval (EAnd pos e e') = do
+  evaled <- eval e
+  evaled' <- eval e'
+  case evaled of 
+    BoolVal b -> case evaled' of
+      BoolVal b' -> return $ BoolVal $ b && b'
+      _ -> throwError $ InvalidTypeException pos
+    _ -> throwError $ InvalidTypeException pos
 
-eval (EOr _ e e') = do
-  BoolVal b  <- eval e
-  BoolVal b' <- eval e'
-  return $ BoolVal $ b || b'
+eval (EOr pos e e') = do
+  evaled <- eval e
+  evaled' <- eval e'
+  case evaled of 
+    BoolVal b -> case evaled' of
+      BoolVal b' -> return $ BoolVal $ b || b'
+      _ -> throwError $ InvalidTypeException pos
+    _ -> throwError $ InvalidTypeException pos
 
-eval (ERel _ e op e') =
+eval (ERel pos e op e') =
   case op of
     (EQU _) -> do 
       v <- eval e
       v' <- eval e'
       return $ BoolVal $ checkEq v v'
     _ -> do
-    IntVal n <- eval e
-    IntVal n' <- eval e'
-    return $ BoolVal $ evalRelOp op n n'
+    evaled <- eval e
+    evaled' <- eval e'
+    case evaled of 
+      IntVal n -> case evaled' of
+        IntVal n' -> return $ BoolVal $ evalRelOp op n n'
+        _ -> throwError $ InvalidTypeException pos
+      _ -> throwError $ InvalidTypeException pos
 
-eval (Ternary _ e e' e'') = do
-  BoolVal b <- eval e
-  if b then do
-    eval e'
-  else do
-    eval e''
+eval (Ternary pos e e' e'') = do
+  evaled <- eval e
+  case evaled of 
+    BoolVal b -> 
+      if b then do
+        eval e'
+      else do
+        eval e''
+    _ -> throwError $ InvalidTypeException pos
 
 runEval exp = runExceptT $ runStateT (runReaderT (eval exp) empty) empty
 
@@ -219,19 +251,25 @@ execStmt (SExp _ e) = do
   eval e -- potential side effects here, that's why needs to be evaluated
   continueExec
 
-execStmt (Cond _ e (Block _ stmts)) = do
-  BoolVal b <- eval e
-  if b then
-    execStmts stmts
-  else
-    continueExec
+execStmt (Cond pos e (Block _ stmts)) = do
+  evaled <- eval e
+  case evaled of 
+    BoolVal b ->
+      if b then
+        execStmts stmts
+      else
+        continueExec
+    _ -> throwError $ InvalidTypeException pos 
 
-execStmt (CondElse _ e (Block _ stmts) (Block _ stmts')) = do
-  BoolVal b <- eval e
-  if b then
-    execStmts stmts
-  else
-    execStmts stmts'
+execStmt (CondElse pos e (Block _ stmts) (Block _ stmts')) = do
+  evaled <- eval e
+  case evaled of
+    BoolVal b ->
+      if b then
+        execStmts stmts
+      else
+        execStmts stmts'
+    _ -> throwError $ InvalidTypeException pos
 
 execStmt (Ret _ e) = do
   value <- eval e
@@ -281,8 +319,6 @@ doesCaseMatch  (DataVal (Udent "L_", _)) (Case _ (ListExpr _ [EVar _ _, Spread _
 doesCaseMatch (DataVal (udent, vals)) (Case _ (EApp _ (EConstr _ udent') exprs) _) =
   udent == udent' && length vals == length exprs
 doesCaseMatch _ _ = False
-
-
 
 execStmts :: [Stmt] -> HSI (Env, ReturnedValue)
 execStmts [] = continueExec

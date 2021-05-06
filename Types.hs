@@ -55,10 +55,12 @@ type Store = Map Loc Value
 
 data RunTimeErrors = DivisionByZeroException BNFC'Position
                    | ModByZeroException BNFC'Position
+                   | InvalidTypeException BNFC'Position
 
 instance Show RunTimeErrors where
   show (DivisionByZeroException pos) = "Division by zero" ++ addPositionInfo pos
   show (ModByZeroException pos) = "Zero was used as a second argument to modulo" ++ addPositionInfo pos
+  show (InvalidTypeException pos) = "A value of a invalid type was supplied to a polymorphic function" ++ addPositionInfo pos
 
 data TypeCheckErrors = UndefinedName BNFC'Position String
                      | TypeAssertFailed BNFC'Position String String
