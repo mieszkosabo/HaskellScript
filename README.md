@@ -1,3 +1,9 @@
+# HaskellScript
+
+## Getting started
+
+### Comments and printing
+```
 // <- this is how you make single line comments
 
 /* And this is
@@ -7,7 +13,9 @@
 // printing
 _print("you can print", "variadic number of", "arguments", "with", "this special print statement(sic) starting with underscore");
 print("or you can use this print, which is a normal HSS function");
-
+```
+### Types
+```
 // HaskellScript has 6 built-in types + user defined algebraic data types:
 
 print(42);     // Int
@@ -42,16 +50,18 @@ data Tree(a) = {
 };
 
 print(Node(Nil(), 42, Nil()));
+```
 
-// # VARIABLES
-// there are no variables in HSS, only constants can be declared:
+### Variables
+```
+// Variables (as all other things) in HSS cannot be mutated, reassigned, etc:
 const a = 42;
 // a = 43; //🚨 Syntax Error!
 // const a = 43; // 🚨 ERROR! This doesn't work because there already is a constant "a" declared 
                 // at the same level/in the same scope
-
-// # FUNCTIONS
-
+```
+### Functions
+```
 // when declaring a named function, i.e. assigning a lambda to a identifier
 // a type signature *should* be provided:
 
@@ -122,4 +132,4 @@ applyMany([print, print, print], "wow");
 // BTW you can pass in lambdas like in the example above (i.e. without their signature)
 // but if a polymorphic function is expected, then the types won't be infered and you
 // may end up with a runtime error
-
+```
