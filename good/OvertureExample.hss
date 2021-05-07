@@ -1,3 +1,6 @@
+// built-in functions from lib/Overture.hss are always in scope
+// and can be used in programs
+
 inc :: Int -> Int
 const inc = \x => (
   x + 1

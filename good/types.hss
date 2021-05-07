@@ -1,0 +1,34 @@
+// HaskellScript has 6 built-in types + user defined algebraic data types:
+
+print(42);     // Int
+
+print("hello"); // String
+
+print(true); // Bool, with its only two possible values shown here
+print(false);
+
+print([1, 2, 3]); // polymorphic, homogenius lists
+print([print, print]); // functions can be printed but it's not pretty
+// ["hi", 42, true]; // 🚨 Type Error! Can't have heterogenius lists in HSS
+
+// function type
+addNumbers :: Int -> Int -> Int
+const addNumbers = \n, m => (n + m);
+print(addNumbers(3, 4));
+
+// for a function that doesn't return any value, there's a special Void type
+logger :: a -> Void
+const logger = \x => {
+  print(x);
+};
+const b = logger("text"); // doesn't cause an error, but isn't very useful
+print(b); // undefined
+
+// you can also create your own algebraic data types
+// they could have multiple (or none) type parameters and multiple (at least one) constructor
+// type parameters don't have to be polymorphic
+data Tree(a) = {
+  Nil() | Node(Tree(a), a, Tree(a))
+};
+
+print(Node(Nil(), 42, Nil()));

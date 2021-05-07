@@ -1,4 +1,5 @@
-// a simple imperative language written in HaskellScript written in Haskell :)
+// demo for polymorphic, recursive data types and pattern matching
+// a simple imperative language written in HaskellScript :)
 
 data Exp() = {
     NumExp(Int) 
@@ -151,4 +152,4 @@ print(
     ),
     [P("n", 5)]
   )
-); // 120
+); // will print env that contains a pair ("res", 120)

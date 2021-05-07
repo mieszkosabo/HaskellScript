@@ -1,0 +1,93 @@
+// when declaring a named function, i.e. assigning a lambda to a identifier
+// a type signature *should* be provided:
+
+integerSingleton :: Int -> [Int]
+const integerSingleton = \n => {
+  return [n];
+};
+
+// If a function consists of a single return statement, then it can always be refactored to
+// a concise form:
+integerSingleton' :: Int -> [Int]
+const integerSingleton' = \n => ([n]);
+
+// Note, that in case of this function's implementation, there's no need for argument
+// to be an int, it could be an argument of any type! So let's refactor it to be polymorphic:
+
+singleton :: a -> [a]
+const singleton = \x => ([x]);
+
+print(singleton("wow"));
+print(singleton(42));
+print(singleton([true, false, true]));
+
+// not typing a function will work, but it will make it a polymorphic function
+// under the hood. So unless you know what you're doing, don't do this. 
+// also typing functions explicity as polymorphic is better style as it makes code 
+// easier to reason about
+
+const inc = \x => (x + 1);
+print(inc(42)); // 43
+// inc("ala") <- this will cause a runtime error
+// integerSingleton("hi") <- this will be caught during typecheck, so before even starting a program
+
+
+// all functions can be partialy applied:
+addNumbers :: Int -> Int -> Int
+const addNumbers = \a, b => (a + b);
+// types for increment will be infered from addNumbers signature
+const increment = addNumbers(1); 
+print(increment(42)); // 43
+
+// closures work as expected:
+
+// Note that "(Void)" is a type of a function that takes no arguments
+// and doesn't return anything
+createPrinter :: String -> (Void) 
+const createPrinter = \text => {
+  printer :: Void
+  const printer = \ => {
+    print(text);
+  };
+  return printer;
+};
+
+const p1 = createPrinter("hello");
+const p2 = createPrinter("world");
+
+p1(); // hello
+p2(); // world
+
+// Functions are treated just like other values, they can be
+// passed as arguments to other functions, returned from them etc.
+applyMany :: [(a -> Void)] -> a -> Void
+const applyMany = \funs, val => {
+  foreach(\fun => {
+    fun(val);
+  }, funs);
+};
+
+applyMany([print, print, print], "wow");
+// BTW you can pass in lambdas like in the example above (i.e. without their signature)
+// but if a polymorphic function is expected, then the types won't be infered and you
+// may end up with a runtime error
+
+// recursion
+factorial :: Int -> Int
+const factorial = \n => {
+  if (n < 2) {
+    return 1;
+  }
+  else {
+    return n * factorial(n - 1);
+  }
+};
+
+print(factorial(5)); // 120
+
+factorial' :: Int -> Int
+const factorial' = \n => (
+  n < 2 ? 1 : n * factorial'(n - 1)
+);
+
+print(factorial'(5)); // 120

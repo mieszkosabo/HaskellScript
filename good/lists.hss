@@ -6,7 +6,7 @@ print(emptyList);
 
 match list:
   case [] {
-    print("empty!");
+    print("empty!"); // won't happen
   }
   case [x, ...xs] {
     _print("head: ", x); // 1
@@ -26,3 +26,12 @@ const isMember = \a, l => {
 
 print(isMember(4, list)); // false
 print(isMember(2, list)); // true
+
+const a = 1;
+const l' = [4, 5, 6];
+
+// spreading operator
+const l = [a, 2, 3, ...l', 7];
+
+print(l); // [1, 2, 3, 4, 5, 6, 7]
+print([1, 2,...[]]); // [1, 2]

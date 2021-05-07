@@ -6,48 +6,54 @@
 
 // printing
 _print("you can print", "variadic number of", "arguments", "with", "this special print statement(sic) starting with underscore");
-print("or you can use this print, which is a normal function HSS function");
+print("or you can use this print, which is a normal HSS function");
 
 // HaskellScript has 6 built-in types + user defined algebraic data types:
 
-const someNumber = 42;     // Int
+print(42);     // Int
 
-const someText = "hello"; // String
+print("hello"); // String
 
-const someBool = true; // Bool, with its only two possible values shown here
-const someBool' = false;
+print(true); // Bool, with its only two possible values shown here
+print(false);
 
-const someList = [1, 2, 3]; // polymorphic, homogenius lists
-const sineList'' = ["ayo", "lets", "go"];
-// const badList = ["hi", 42, true]; // 🚨 Type Error! Can't have heterogenius lists in HSS
+print([1, 2, 3]); // polymorphic, homogenius lists
+print(["ayo", "lets", "go"]);
+// ["hi", 42, true]; // 🚨 Type Error! Can't have heterogenius lists in HSS
 
 // function type
 addNumbers :: Int -> Int -> Int
 const addNumbers = \n, m => (n + m);
+print(addNumbers(3, 4));
 
 // for a function that doesn't return any value, there's a special Void type
 logger :: a -> Void
 const logger = \x => {
   print(x);
 };
+const b = logger("text"); // doesn't cause an error, but isn't very useful
+print(b); // undefined
 
 // you can also create your own algebraic data types
 // they could have multiple (or none) type parameters and multiple (at least one) constructor
+// type parameters don't have to be polymorphic
 data Tree(a) = {
   Nil() | Node(Tree(a), a, Tree(a))
 };
 
+print(Node(Nil(), 42, Nil()));
+
 // # VARIABLES
-// there are no variables in HSS, only constnts can be declared:
+// there are no variables in HSS, only constants can be declared:
 const a = 42;
-// a = 43; //🚨 ERROR!
+// a = 43; //🚨 Syntax Error!
 // const a = 43; // 🚨 ERROR! This doesn't work because there already is a constant "a" declared 
                 // at the same level/in the same scope
 
 // # FUNCTIONS
 
-// when declaring a named function, i.e. assigning a lambda to a constant
-// a type signature must be provided:
+// when declaring a named function, i.e. assigning a lambda to a identifier
+// a type signature *should* be provided:
 
 integerSingleton :: Int -> [Int]
 const integerSingleton = \n => {
@@ -56,7 +62,6 @@ const integerSingleton = \n => {
 
 // If a function consists of a single return statement, then it can always be refactored to
 // a concise form:
-
 integerSingleton' :: Int -> [Int]
 const integerSingleton' = \n => ([n]);
 
@@ -69,6 +74,16 @@ const singleton = \x => ([x]);
 print(singleton("wow"));
 print(singleton(42));
 print(singleton([true, false, true]));
+
+// not typing a function will work, but it will make inc be a polymorphic function
+// under the hood. So unless you know what you're doing, don't do this. 
+// also typing functions explicity as polymorphic is better style as it makes code 
+// easier to reason about
+const inc = \x => (x + 1);
+print(inc(42)); // 43
+// inc("ala") <- this will cause a runtime error
+// integerSingleton("hi") <- this will be caught during typecheck, before evem starting a program
+
 
 // all functions can be partialy applied:
 

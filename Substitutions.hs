@@ -22,7 +22,7 @@ substituteAll ts ts' = do
 inferSubs_ :: Type -> Type -> SubsMonad Type
 inferSubs_ (DataType pos (Udent name) ts) (DataType _ (Udent name') ts') = do
   if name /= name' then do
-    throwError $ FunctionApplicationError pos "Algebraic types don'y match"
+    throwError $ FunctionApplicationError pos "Algebraic types don't match"
   else do
     nts <- zipWithM inferSubs_ (typeArgsToTypes ts) (typeArgsToTypes ts')
     return $ DataType Nothing (Udent name) $ typesToTypeArgs nts
@@ -56,7 +56,7 @@ inferSubs_ t t' = if compareType t t' then
                       return t
                     else do
                       liftIO $ print t >> print t'
-                      throwError $ FunctionApplicationError Nothing "int str bool case"
+                      throwError $ FunctionApplicationError Nothing "Types don't match fuction signature"
 
 substitute_ :: Type -> SubsMonad Type
 substitute_ (DataType pos udent ts) = do

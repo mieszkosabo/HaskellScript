@@ -1,0 +1,17 @@
+const a = 100;
+
+// ternary
+const b = a < 100 ? 5 : 500;
+print(b); // 500
+
+// if + else
+if (a + b < 1000) {
+  print("yes");
+} else {
+  print("no");
+} // yes
+
+// if
+if (a == 100) {
+  print(a + b); // 600
+}
