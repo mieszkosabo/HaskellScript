@@ -1,5 +1,5 @@
 // demo for polymorphic, recursive data types and pattern matching
-// a simple imperative language written in HaskellScript :)
+// implementing a simple imperative language in HaskellScript :)
 
 data Exp() = {
     NumExp(Int) 
@@ -39,16 +39,13 @@ const lookup = \s, state => {
     case [] {
       return -1; // some default value if not found
     }
-    case [x, ...xs] {
-      match x: // here nested pattern matching would be cool, but again, not supported atm
-        case P(s', val) {
-          if (s == s') {
-            return val;
-          }
-          else {
-            return lookup(s, xs);
-          }
-        }
+    case [P(s', val), ...xs] { // nested pattern matching
+      if (s == s') {
+        return val;
+      }
+      else {
+        return lookup(s, xs);
+      }
     }
 };
 
