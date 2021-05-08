@@ -30,7 +30,7 @@ data Stmt() = {
 // Only integer values are allowed.
 
 data Pair(a, b) = {
-  P(a, b) | Nil()
+  P(a, b) 
 };
 
 lookup :: String -> [Pair(String, Int)] -> Int

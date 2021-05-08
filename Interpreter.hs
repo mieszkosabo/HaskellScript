@@ -302,10 +302,12 @@ runCase (Case _ expr (Block _ stmts)) val = do
   return (env, ret)
 
 addPatternToEnv :: Value -> Expr -> HSI Env
-addPatternToEnv _ (EVar _ (Ident "_")) = do ask
-addPatternToEnv v (EVar _ (Ident x)) = do
-  env <- ask
-  local (const env) $ declareVar x v
+addPatternToEnv v (EVar _ (Ident x)) =
+  if last x == '_' then do
+    ask
+  else do
+    env <- ask
+    local (const env) $ declareVar x v
 addPatternToEnv (DataVal (Udent "L_", [head, rest])) (ListExpr _ [x, Spread _ y]) = do
   env <- ask
   env' <- local (const env) $ addPatternToEnv head x

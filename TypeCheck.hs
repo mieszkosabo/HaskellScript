@@ -106,10 +106,12 @@ typeCheckCase (Case pos expr (Block _ stmts)) t = do
   return $ fromMaybe (Void pos) retType
 
 addPatternTypesToEnv :: Type -> Expr -> TypeCheck TEnv
-addPatternTypesToEnv _ (EVar _ (Ident "_")) = do ask
-addPatternTypesToEnv t (EVar pos (Ident x)) = do
-  env <- ask
-  local (const env) $ declareVarType x t pos
+addPatternTypesToEnv t (EVar pos (Ident x)) =
+  if last x == '_' then do
+    ask
+  else do
+    env <- ask
+    local (const env) $ declareVarType x t pos
 addPatternTypesToEnv (ListT pos t) (ListExpr _ [x, Spread _ y]) = do
   env <- ask
   env' <- local (const env) $ addPatternTypesToEnv t x
