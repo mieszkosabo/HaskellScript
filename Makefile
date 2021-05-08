@@ -29,7 +29,7 @@ TestHaskellScript : AbsHaskellScript.hs LexHaskellScript.hs ParHaskellScript.hs 
 	${GHC} ${GHC_OPTS} $@
 
 interpreter : Main.hs AbsHaskellScript.hs LexHaskellScript.hs ParHaskellScript.hs
-	stack ghc -- -o interpreter Main.hs
+	ghc -- -o interpreter Main.hs
 # Rules for cleaning generated files.
 
 clean :
