@@ -114,13 +114,13 @@ addPatternTypesToEnv (ListT pos t) (ListExpr _ [x, Spread _ y]) = do
   env <- ask
   env' <- local (const env) $ addPatternTypesToEnv t x
   local (const env') $ addPatternTypesToEnv (ListT pos t) y
-addPatternTypesToEnv (DataType _ (Udent udent) typeArgs) (EApp pos (EConstr _ _) exprs) =
-  if length typeArgs /= length exprs then
+addPatternTypesToEnv (DataType _ (Udent udent) _) (EApp pos (EConstr pos' (Udent constrName)) exprs) = do
+  (FunT _ ts) <- askType constrName pos'
+  if length ts - 1 /= length exprs then
     throwError $ PatternMatchingError pos $ "invalid number of arguments in pattern for " ++ udent
   else do
     env <- ask
-    let types = typeArgsToTypes typeArgs
-    foldM f env (zip types exprs)
+    foldM f env (zip ts exprs)
     where
       f = \env (t, e) -> local (const env) $ addPatternTypesToEnv t e
 addPatternTypesToEnv _ _ = do ask

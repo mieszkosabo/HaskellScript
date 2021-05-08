@@ -82,6 +82,7 @@ instance Show TypeCheckErrors where
   show (FunctionApplicationError pos msg) = "Error in function application: " ++ msg ++ addPositionInfo pos
   show (AssertionError pos msg) = msg ++ addPositionInfo pos
   show (ReassignError pos name) = "Attempt to reassign a constant: " ++ name ++ addPositionInfo pos
+  show (PatternMatchingError pos msg) = msg ++ addPositionInfo pos
 type TEnv = Map VarName Type
 type TypeCheck = ReaderT TEnv (ExceptT TypeCheckErrors IO)
 type ReturnedType = Maybe Type
