@@ -17,7 +17,7 @@ all : interpreter
 # Rules for building the parser.
 
 AbsHaskellScript.hs LexHaskellScript.x ParHaskellScript.y PrintHaskellScript.hs TestHaskellScript.hs : HaskellScript.cf
-	bnfc --haskell --functor HaskellScript.cf
+	/home/students/inf/PUBLIC/MRJP/bin/bnfc --haskell --functor HaskellScript.cf
 
 %.hs : %.y
 	${HAPPY} ${HAPPY_OPTS} $<
