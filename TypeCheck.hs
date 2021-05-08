@@ -38,14 +38,12 @@ evalType (Ternary pos e1 e2 e3) = do
     return t2
   else throwError $ ReturnTypeVary pos (show t2) (show t3)
 
--- FIXME: jakieś sprawdzanie by się przydało w sumie, ale jeszce nie wiem jak duże
 evalType (ConciseLambda pos idents _) =
   return $ FunT pos $ replicate (length idents + 1) (WildcardT pos $ Ident lambdaWildcard)
 
 evalType (LongLambda pos idents _) = 
   return $ FunT pos $ replicate (length idents + 1) (WildcardT pos $ Ident lambdaWildcard)
 
--- TODO: jak wymusić używanie spreada tylko wewnątrz list?
 evalType (Spread pos e) = do
   t <- evalType e
   case t of
@@ -88,7 +86,6 @@ evalType (EOr pos e e') = do
   mapM_ (\t -> assertType (Bool Nothing) t pos) ts
   return $ Bool pos
 
--- TODO: eq for data types
 evalType (ERel pos e op e') = do
   t1 <- evalType e
   t2 <- evalType e'
@@ -103,20 +100,31 @@ evalType (ERel pos e op e') = do
       return $ Bool pos
 
 typeCheckCase :: Case -> Type -> TypeCheck Type
-typeCheckCase (Case pos (ListExpr _ []) (Block _ stmts)) _ = do
-  (_, retType) <- typeCheckStmts stmts
-  return $ fromMaybe (Void pos) retType
-typeCheckCase (Case pos (ListExpr _ [EVar _ (Ident x), Spread _ (EVar _ (Ident xs))]) (Block _ stmts)) (ListT _ t) = do
-  env' <- addArgsTypesToEnv [x, xs] [t, ListT pos t] pos
-  (_, retType) <- local (const env') (typeCheckStmts stmts)
-  return $ fromMaybe (Void pos) retType
-typeCheckCase (Case pos (EApp _ (EConstr _ (Udent name)) args) (Block _ stmts)) _ = do
-  (FunT _ types) <- askType name pos
-  names <- argsToStrings args
-  env' <- addArgsTypesToEnv names types pos
+typeCheckCase (Case pos expr (Block _ stmts)) t = do
+  env' <- addPatternTypesToEnv t expr
   (_, retType) <- local (const env') (typeCheckStmts stmts)
   return $ fromMaybe (Void pos) retType
 
+addPatternTypesToEnv :: Type -> Expr -> TypeCheck TEnv
+addPatternTypesToEnv _ (EVar _ (Ident "_")) = do ask
+addPatternTypesToEnv t (EVar pos (Ident x)) = do
+  env <- ask
+  local (const env) $ declareVarType x t pos
+addPatternTypesToEnv (ListT pos t) (ListExpr _ [x, Spread _ y]) = do
+  env <- ask
+  env' <- local (const env) $ addPatternTypesToEnv t x
+  local (const env') $ addPatternTypesToEnv (ListT pos t) y
+addPatternTypesToEnv (DataType _ (Udent udent) typeArgs) (EApp pos (EConstr _ _) exprs) =
+  if length typeArgs /= length exprs then
+    throwError $ PatternMatchingError pos $ "invalid number of arguments in pattern for " ++ udent
+  else do
+    env <- ask
+    let types = typeArgsToTypes typeArgs
+    foldM f env (zip types exprs)
+    where
+      f = \env (t, e) -> local (const env) $ addPatternTypesToEnv t e
+addPatternTypesToEnv _ _ = do ask
+      
 argsToStrings :: [Expr] -> TypeCheck [String]
 argsToStrings = mapM f
     where 

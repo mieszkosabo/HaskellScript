@@ -68,6 +68,7 @@ data TypeCheckErrors = UndefinedName BNFC'Position String
                      | FunctionApplicationError BNFC'Position String
                      | AssertionError BNFC'Position String
                      | ReassignError BNFC'Position String
+                     | PatternMatchingError BNFC'Position String
 
 addPositionInfo :: BNFC'Position -> String
 addPositionInfo (Just (line, col)) = " near line " ++ show line ++ ", column " ++ show col ++ "."
