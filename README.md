@@ -133,3 +133,99 @@ applyMany([print, print, print], "wow");
 // but if a polymorphic function is expected, then the types won't be infered and you
 // may end up with a runtime error
 ```
+### Pattern matching
+See (Wikipedia page)[https://en.wikipedia.org/wiki/Pattern_matching] on pattern matching for more info.
+```
+data Point() = { P(Int, Int) };
+
+data Shape() = {
+    Rect(Point(), Point()) // upper-left corner, lower right corner
+  | Circle(Point(), Int) // center, radius
+  | Triangle(Point(), Point(), Point())
+};
+
+abs :: Int -> Int
+const abs = \x => (
+  x < 0 ? -x : x
+);
+
+// results are going to be a little akward, because there are only integers in HSS
+// but it is just an example of pattern matching
+calculateArea :: Shape() -> Int
+const calculateArea = \shape => {
+  match shape:
+    case Rect(P(x, y), P(x', y')) {
+      return abs(x - x') * abs(y - y');
+    }
+    case Circle(center_, radius) { // variables ending with _ always match but don't get binded
+      // print(center_); // Error: undefined name
+      return 3 * radius * radius; // here 3 being poor man's π
+    }
+    case Triangle(P(x1, y1), P(x2, y2), P(x3, y3)) {
+      return abs(x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) / 2; 
+    }
+};
+
+print(calculateArea(Rect(P(5, 5), P(10, 10)))); // 25
+print(calculateArea(Circle(P(5, 5), 10))); // 300
+print(calculateArea(Triangle(P(0, 0), P(3, 0), P(3, 4)))); // 6
+```
+concrete values can also be matched:
+```
+const statusCode = 200;
+
+match statusCode:
+  case 200 {
+    print("OK");
+  }
+  case 204 {
+    print("No Content");
+  }
+  case 400 {
+    print("Bad Request");
+  }
+  // etc...
+```
+
+### Lists
+Under the hood, lists are (defined in Overture) HaskellScripts data type, but with some special
+syntax sugar for creation and pattern matching.
+```
+const list = [1, 2, 3];
+print(list);
+
+const emptyList = [];
+print(emptyList);
+
+match list:
+  case [] {
+    print("empty!"); // won't happen
+  }
+  case [x, ...xs] {
+    _print("head: ", x); // 1
+    _print("tail: ", xs); // [2, 3]
+  }
+
+isMember :: a -> [a] -> Bool
+const isMember = \a, l => {
+  match l:
+    case [] {
+      return false;
+    }
+    case [x, ...xs] {
+      return x == a ? true : isMember(a, xs);
+    }
+};
+
+print(isMember(4, list)); // false
+print(isMember(2, list)); // true
+
+const a = 1;
+const l' = [4, 5, 6];
+
+// spreading operator
+const l = [a, 2, 3, ...l', 7];
+
+print(l); // [1, 2, 3, 4, 5, 6, 7]
+print([1, 2,...[]]); // [1, 2]
+```
