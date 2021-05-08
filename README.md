@@ -58,7 +58,7 @@ print(Node(Nil(), 42, Nil()));
 const a = 42;
 // a = 43; //🚨 Syntax Error!
 // const a = 43; // 🚨 ERROR! This doesn't work because there already is a constant "a" declared 
-                // at the same level/in the same scope
+                 // at the same level/in the same scope
 ```
 ### Functions
 ```
@@ -134,7 +134,7 @@ applyMany([print, print, print], "wow");
 // may end up with a runtime error
 ```
 ### Pattern matching
-See (Wikipedia page)[https://en.wikipedia.org/wiki/Pattern_matching] on pattern matching for more info.
+See [Wikipedia page](https://en.wikipedia.org/wiki/Pattern_matching) on pattern matching for more info.
 ```
 data Point() = { P(Int, Int) };
 
@@ -149,7 +149,7 @@ const abs = \x => (
   x < 0 ? -x : x
 );
 
-// results are going to be a little akward, because there are only integers in HSS
+// results are going to be a little awkward, because there are only integers in HSS
 // but it is just an example of pattern matching
 calculateArea :: Shape() -> Int
 const calculateArea = \shape => {
@@ -186,7 +186,10 @@ match statusCode:
   }
   // etc...
 ```
-
+### Overture
+Overture is a small standard library that contains some useful functions like map, reduce, take, range etc...
+These functions are preloaded by the HSS interpreter and are available in interpreted programs.
+See [Overture.hss](./lib/Overture.hss).
 ### Lists
 Under the hood, lists are (defined in Overture) HaskellScripts data type, but with some special
 syntax sugar for creation and pattern matching.
