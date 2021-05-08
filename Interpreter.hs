@@ -288,37 +288,51 @@ execStmt (Print _ expressions) = do
 
 execStmt (Match _ (Ident name) cases) = do
   value <- varToValue name
-  let maybeMatchingCase = find (doesCaseMatch value) cases
+  let maybeMatchingCase = find (\(Case _ e _) -> isMatching value e) cases
   case maybeMatchingCase of
     Nothing -> continueExec
     Just matchingCase -> runCase matchingCase value
 
 
 runCase :: Case -> Value -> HSI (Env, ReturnedValue) 
-runCase (Case _ (ListExpr _ []) (Block _ stmts)) _ = do
-  execStmts stmts
-runCase (Case _ (ListExpr _ [EVar _ (Ident x), Spread _ (EVar _ (Ident xs))]) (Block _ stmts)) (DataVal (_, [x', xs'])) = do
+runCase (Case _ expr (Block _ stmts)) val = do
   env <- ask
-  env' <- local (const env) $ declareVar x x'
-  env' <- local (const env') $ declareVar xs xs' 
+  env' <- addPatternToEnv val expr
   (_, ret) <- local (const env') $ execStmts stmts
   return (env, ret)
 
-runCase (Case _ (EApp _ _ exprs) (Block _ stmts)) (DataVal (_, vals)) = do
+addPatternToEnv :: Value -> Expr -> HSI Env
+addPatternToEnv _ (EVar _ (Ident "_")) = do ask
+addPatternToEnv v (EVar _ (Ident x)) = do
   env <- ask
-  let names = map (\(EVar _ (Ident name)) -> name) exprs
-  env' <- local (const env) $ addArgsToEnv names vals
-  (_, ret) <- local (const env') $ execStmts stmts
-  return (env, ret)
+  local (const env) $ declareVar x v
+addPatternToEnv (DataVal (Udent "L_", [head, rest])) (ListExpr _ [x, Spread _ y]) = do
+  env <- ask
+  env' <- local (const env) $ addPatternToEnv head x
+  local (const env') $ addPatternToEnv rest y
+addPatternToEnv (DataVal (_, vals)) (EApp _ (EConstr _ _) exprs) = do
+  env <- ask
+  foldM f env (zip vals exprs)
+  where
+    f = \env (val, e) -> local (const env) $ addPatternToEnv val e
+addPatternToEnv _ _ = do ask
 
-doesCaseMatch :: Value -> Case -> Bool
--- syntax sugar for lists
-doesCaseMatch  (DataVal (Udent "EmptyList_", _)) (Case _ (ListExpr _ []) _) = True
-doesCaseMatch  (DataVal (Udent "L_", _)) (Case _ (ListExpr _ [EVar _ _, Spread _ _]) _) = True
 
-doesCaseMatch (DataVal (udent, vals)) (Case _ (EApp _ (EConstr _ udent') exprs) _) =
-  udent == udent' && length vals == length exprs
-doesCaseMatch _ _ = False
+isMatching :: Value -> Expr -> Bool
+isMatching _ (EVar _ _) = True
+isMatching (IntVal n) (ELitInt _ n') = n == n'
+isMatching (BoolVal b) (ELitTrue _) = b
+isMatching (BoolVal b) (ELitFalse _) = not b
+isMatching (StringVal s) (EString _ s') = s == s'
+isMatching (DataVal (Udent "EmptyList_", _)) (ListExpr _ []) = True
+isMatching (DataVal (Udent "L_", [head, rest])) (ListExpr _ [x, Spread _ y]) 
+  = isMatching head x && isMatching rest y
+isMatching (DataVal (udent, vals)) (EApp _ (EConstr _ udent') exprs)
+  = udent == udent' 
+    && length vals == length exprs
+    && all (uncurry isMatching) (zip vals exprs)
+isMatching _ _ = False
+
 
 execStmts :: [Stmt] -> HSI (Env, ReturnedValue)
 execStmts [] = continueExec

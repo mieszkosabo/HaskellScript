@@ -21,7 +21,6 @@ data Value = IntVal Integer
            | BoolVal Bool
            | StringVal String
            | VoidVal
-          | ListVal ListDef
           | FuncVal FuncDef
           | DataVal DataDef
           | ConstrVal Constr [TypeArg]
@@ -36,14 +35,13 @@ instance Show Value where
     show args ++ "\n"
     ++ show stmts ++ "\n"
     ++ show env
-  show (ListVal vs) = show vs
   show (ConstrVal udent args) = show udent ++ show args
   -- special printing for built-in list data type
   show (DataVal (Udent "EmptyList_", _)) = "[]"
-  show (DataVal (Udent "L_", [x, rest])) = show $ f x ++ f rest
+  show (DataVal (Udent "L_", [x, rest])) = show $ x:f rest
     where
       f :: Value -> [Value]
-      f (DataVal (Udent "L_", [x', rest'])) = f x' ++ f rest'
+      f (DataVal (Udent "L_", [x', rest'])) = x':f rest'
       f (DataVal (Udent "EmptyList_", _)) = []
       f x = [x]
   show (DataVal (constr, values)) = show constr ++ show values
@@ -70,6 +68,7 @@ data TypeCheckErrors = UndefinedName BNFC'Position String
                      | FunctionApplicationError BNFC'Position String
                      | AssertionError BNFC'Position String
                      | ReassignError BNFC'Position String
+                     | PatternMatchingError BNFC'Position String
 
 addPositionInfo :: BNFC'Position -> String
 addPositionInfo (Just (line, col)) = " near line " ++ show line ++ ", column " ++ show col ++ "."
@@ -83,6 +82,7 @@ instance Show TypeCheckErrors where
   show (FunctionApplicationError pos msg) = "Error in function application: " ++ msg ++ addPositionInfo pos
   show (AssertionError pos msg) = msg ++ addPositionInfo pos
   show (ReassignError pos name) = "Attempt to reassign a constant: " ++ name ++ addPositionInfo pos
+  show (PatternMatchingError pos msg) = msg ++ addPositionInfo pos
 type TEnv = Map VarName Type
 type TypeCheck = ReaderT TEnv (ExceptT TypeCheckErrors IO)
 type ReturnedType = Maybe Type
