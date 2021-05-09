@@ -1,0 +1,8 @@
+// print(2 / 0);
+// print(2 % 0);
+
+// this function is dangerously typed
+badFun :: a -> a -> a
+const badFun = \x, y => (x + y);
+
+// badFun("a", "b"); // A value of a invalid type was supplied to a polymorphic function

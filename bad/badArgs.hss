@@ -1,0 +1,17 @@
+addThreeNumbers :: Int -> Int -> Int -> Int
+const addThreeNumbers = \a, b, c => (
+  a + b + c
+);
+
+// too many arguments
+//addThreeNumbers(1, 2, 3, 4);
+
+// Types don't match funtion signature
+// addThreeNumbers("1", "2", "3");
+
+// combo
+// addThreeNumbers("1", "2", "3", "4");
+
+// this looks weird, but it's a partial application of zero arguments, so no error
+const b = addThreeNumbers(); // same as "const b = addThreeNumbers;"
+// print(b("2", "2", "1")); // types info gets passed, so this will result in an error as well

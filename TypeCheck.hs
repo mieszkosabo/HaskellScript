@@ -181,12 +181,12 @@ typeCheck (DataDecl pos (Udent name) params constructors) = do
 
 typeCheck (Cond pos e (Block _ stmts)) = do
   t <- evalType e
-  assertType t (Bool Nothing) pos
+  assertType (Bool Nothing) t pos
   typeCheckStmts stmts
 
 typeCheck (CondElse pos e (Block _ stmts) (Block _ stmts')) = do
   t <- evalType e
-  assertType t (Bool Nothing) pos
+  assertType (Bool Nothing) t pos
   (_, ret) <- typeCheckStmts stmts
   (_, ret') <- typeCheckStmts stmts'
   case (ret, ret') of

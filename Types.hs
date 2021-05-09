@@ -75,7 +75,7 @@ addPositionInfo (Just (line, col)) = " near line " ++ show line ++ ", column " +
 addPositionInfo Nothing = "."
 instance Show TypeCheckErrors where
   show (UndefinedName pos name) = "Undefined name: " ++ name ++ addPositionInfo pos
-  show (TypeAssertFailed pos t1 t2) = "Expected type: " ++ t2 ++ ", but got: " ++ t1 ++ addPositionInfo pos
+  show (TypeAssertFailed pos t1 t2) = "Expected type: " ++ t1 ++ ", but got: " ++ t2 ++ addPositionInfo pos
   show (ReturnTypeVary pos t1 t2) = "Unexpected return type. Expected: " ++ t1 ++ ", but got: " ++ t2 ++ addPositionInfo pos
   show (SpreadAppliedNotToList pos) = "Spread operator was applied to a different type than a List" ++ addPositionInfo pos
   show (HeterogenousList pos) = "Lists cannot be heterogenous" ++ addPositionInfo pos
