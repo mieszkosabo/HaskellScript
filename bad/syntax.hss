@@ -1,0 +1,6 @@
+// a few examples of bad syntax, uncomment chosen line to see an error
+
+// no semicolon
+const a = 3
+
+//const b = 2;
