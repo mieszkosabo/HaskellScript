@@ -1,0 +1,32 @@
+// following errors are going to be caught in the type checking phase
+
+// 1. undefined name
+// print(a);
+
+// 2. type asserion
+// print(-"ala");
+
+// 3. return type vary / unexpected return type
+//const a = 3 > 0 ? "ala" : 42;
+
+// 4. spread not applied to a list
+// print(...true);
+
+// 5. heterogenous list
+// print([1, "ala"]);
+
+// 6. reassign error
+// const b = 3;
+// const b = 2;
+
+
+data Data() = { SomeConstr(Int, Bool) };
+const d = SomeConstr(42, true);
+// 7. Same function application errors rules are applied to data constructors
+// const d' = SomeConstr("invalid type?");
+
+ match d:
+  // 8. pattern matching error
+  //case SomeConstr(x, y, z) {
+  //  print("oh no");
+  //}
