@@ -23,7 +23,7 @@ const calculateArea = \shape => {
     }
     case Circle(center_, radius) { // variables ending with _ always match but don't get binded
       // print(center_); // Error: undefined name
-      return 3 * radius * radius; // here 3 being poor man's π
+      return 3 * radius * radius; // here 3 being poor man's Pi
     }
     case Triangle(P(x1, y1), P(x2, y2), P(x3, y3)) {
       return abs(x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) / 2; 

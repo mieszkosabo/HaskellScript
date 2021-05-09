@@ -9,7 +9,7 @@ print(false);
 
 print([1, 2, 3]); // polymorphic, homogenius lists
 print([print, print]); // functions can be printed but it's not pretty
-// ["hi", 42, true]; // 🚨 Type Error! Can't have heterogenius lists in HSS
+// ["hi", 42, true]; // Type Error! Can't have heterogenius lists in HSS
 
 // function type
 addNumbers :: Int -> Int -> Int
