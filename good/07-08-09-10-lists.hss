@@ -35,3 +35,19 @@ const l = [a, 2, 3, ...l', 7];
 
 print(l); // [1, 2, 3, 4, 5, 6, 7]
 print([1, 2,...[]]); // [1, 2]
+
+
+const list = [1, 2, 3];
+const flist = [print,print,print];
+print(head(list));
+const f = head(flist);
+f(42);
+
+// nested lists
+
+const nested = [[1], [2, 3, 4], [5]];
+print(nested);
+
+flatten :: [[a]] -> [a]
+const flatten = reduce(\acc, val => ([...acc, ...val]), []);
+print(flatten(nested));

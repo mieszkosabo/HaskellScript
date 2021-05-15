@@ -1,0 +1,12 @@
+const mhead = \l => {
+  match l:
+    case [x, ...xs] {
+      return x;
+    }
+};
+
+const list = [1, 2, 3];
+const flist = [print,print,print];
+print(mhead(list));
+const f = mhead(flist);
+f(42);

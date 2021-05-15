@@ -57,9 +57,12 @@ evalType (ListExpr pos exprs) = do
   else throwError $ HeterogenousList pos
 
 evalType (EApp pos e args) = do
-  (FunT _ argTypes) <- evalType e
-  assertArgCount argTypes args pos
-  determineTypesAfterApp argTypes args
+  f <- evalType e
+  case f of 
+    (FunT _ argTypes) -> do
+      assertArgCount argTypes args pos
+      determineTypesAfterApp argTypes args
+    _ -> throwError $ FunctionApplicationError pos "Insufficient type info. Please add missing function signatures." 
 
 evalType (Neg pos e) = do
   t <- evalType e
@@ -115,14 +118,17 @@ addPatternTypesToEnv (ListT pos t) (ListExpr _ [x, Spread _ y]) = do
   env' <- local (const env) $ addPatternTypesToEnv t x
   local (const env') $ addPatternTypesToEnv (ListT pos t) y
 addPatternTypesToEnv (DataType _ (Udent udent) _) (EApp pos (EConstr pos' (Udent constrName)) exprs) = do
-  (FunT _ ts) <- askType constrName pos'
-  if length ts - 1 /= length exprs then
-    throwError $ PatternMatchingError pos $ "invalid number of arguments in pattern for " ++ udent
-  else do
-    env <- ask
-    foldM f env (zip ts exprs)
-    where
-      f = \env (t, e) -> local (const env) $ addPatternTypesToEnv t e
+  con <- askType constrName pos'
+  case con of
+    (FunT _ ts) -> do
+      if length ts - 1 /= length exprs then
+        throwError $ PatternMatchingError pos $ "invalid number of arguments in pattern for " ++ udent
+      else do
+        env <- ask
+        foldM f env (zip ts exprs)
+        where
+          f = \env (t, e) -> local (const env) $ addPatternTypesToEnv t e
+    _ -> throwError $ PatternMatchingError pos "Unknown constructor was provided."
 addPatternTypesToEnv _ _ = do ask
       
 argsToStrings :: [Expr] -> TypeCheck [String]
