@@ -3,7 +3,7 @@
 // 1. undefined name
 // print(a);
 
-// 2. type asserion
+// 2. type assertion
 // print(-"ala");
 
 // 3. return type vary / unexpected return type

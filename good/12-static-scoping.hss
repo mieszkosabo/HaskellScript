@@ -1,0 +1,6 @@
+const x = 10;
+const fun = \ => (x + 1);
+const innerScope = \ => {
+  const x = 100;
+  print(fun()); // 11
+}();
