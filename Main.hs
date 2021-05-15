@@ -33,12 +33,12 @@ parse input =
       preloadedTypeCheck <- loadOvertureTypes
       typeCheckRes <- preloadedTypeCheck stmts
       case typeCheckRes of
-        Left err -> hPutStrLn stderr $ "🚨 Type Error! " ++ show err
+        Left err -> hPutStrLn stderr $ "Type Error! " ++ show err
         Right _ -> do
           preloadedHSI <- loadOverture
           runtimeRes <- preloadedHSI stmts
           case runtimeRes of
-            Left err -> hPutStrLn stderr ("🚨 Runtime Error! " ++ show err) >> exitFailure
+            Left err -> hPutStrLn stderr ("Runtime Error! " ++ show err) >> exitFailure
             Right _ -> do
               return ()
     (Bad msg) -> hPutStrLn stderr msg >> exitFailure
